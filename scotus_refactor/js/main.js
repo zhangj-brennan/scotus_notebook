@@ -292,8 +292,18 @@ drawJusticeOverlapNetwork(net, { selector: "#overlapNetwork", width: 900, height
 
 drawOverlapMedianByInterval(justicesWithOverlap, {
   selector: "#overlapMedianByDecade",
-  interval: 20
+  interval: 10
 });
+
+drawOverlapMedianByInterval(justicesWithOverlap, {
+  selector: "#overlapMedianByDecade30",
+  interval: 30
+});
+drawOverlapMedianByInterval(justicesWithOverlap, {
+  selector: "#overlapMedianByDecade50",
+  interval: 50
+});
+
 
 const decadeStarts = computeDecadeStarts(justices);
 drawDecadeStartsBar(decadeStarts, { selector: "#decadeChanges", width: 800 });

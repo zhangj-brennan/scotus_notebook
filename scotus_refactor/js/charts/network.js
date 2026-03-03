@@ -174,12 +174,12 @@ function labelPropagationCommunities(nodes, adj, nodesById, {
 function drawJusticeOverlapNetwork(network, {
   selector = "#overlapNetwork",
   width = 800,
-  height = 600,
+  height = 800,
   colorMode = "none" // "community" | "component"
 } = {}) {
   const root = d3.select(selector);
   root.selectAll("*").remove();
-
+height = 800
   const { nodes, links } = network;
 
   const svg = root.append("svg")
@@ -215,7 +215,7 @@ function drawJusticeOverlapNetwork(network, {
   const maxDeg = d3.max(nodes, d => d.degree) || 0;
   const nodeRadius = d3.scaleSqrt()
     .domain([6, Math.max(1, maxDeg)])
-    .range([2, 7]);
+    .range([1, 12]);
 
   // ---- link scales ----
   const wExtent = d3.extent(links, d => d.weightYears);
@@ -223,7 +223,7 @@ function drawJusticeOverlapNetwork(network, {
   const wMax = wExtent[1] ?? 1;
 
   const linkWidth = d3.scaleLinear().domain([wMin, wMax]).range([0.5, 2]);
-  const linkDistance = d3.scaleLinear().domain([wMin, wMax]).range([10, 1]);
+  const linkDistance = d3.scaleLinear().domain([wMin, wMax]).range([60, 1]);
 
   // ---- color ----
   const palette = d3.schemeTableau10 || d3.schemeCategory10;
@@ -247,7 +247,7 @@ function drawJusticeOverlapNetwork(network, {
         return 0.05 + 0.55 * t;
       })
     )
-    .force("charge", d3.forceManyBody().strength(d => - d.degree * 1.5))
+    .force("charge", d3.forceManyBody().strength(d => - d.degree * 2))
     .force("center", d3.forceCenter(width / 2, height / 2))
     .force("collide", d3.forceCollide(d => nodeRadius(d.degree) + 2));
 

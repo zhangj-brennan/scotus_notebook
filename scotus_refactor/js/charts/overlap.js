@@ -5,14 +5,15 @@
  *
  * Returns:
  *   { rows: justicesWithOverlap[], stats: { n, mean, median, min, max } }
- */
-function addOverlapCounts(justices, {
+ */function addOverlapCounts(justices, {
   idKey = "justice number order",
   startKey = "start_dt",
-  endKey = "end_dt"
+  endKey = "end_dt",
+  nameKey = "first last"
 } = {}) {
 
   const asId = d => String(d?.[idKey] ?? "").trim();
+  const asName = d => String(d?.[nameKey] ?? d?.name ?? "").trim();
   const asDate = (d, key) => (d?.[key] instanceof Date ? d[key] : null);
 
   const rows = justices
@@ -25,6 +26,9 @@ function addOverlapCounts(justices, {
     })
     .filter(Boolean);
 
+  // Build id -> name lookup (for tooltip lists)
+  const idToName = new Map(rows.map(d => [d._id, asName(d) || `Justice #${d._id}`]));
+
   const sorted = rows.slice().sort((a, b) => a._start - b._start);
 
   const overlaps = new Map();
@@ -35,7 +39,6 @@ function addOverlapCounts(justices, {
 
     for (let j = i + 1; j < sorted.length; j++) {
       const b = sorted[j];
-
       if (b._start > a._end) break;
 
       const overlap = (a._start <= b._end) && (b._start <= a._end);
@@ -48,16 +51,20 @@ function addOverlapCounts(justices, {
 
   const out = rows.map(d => {
     const set = overlaps.get(d._id) || new Set();
+
     const overlapIds = Array.from(set).sort((a, b) => {
       const na = Number(a), nb = Number(b);
       if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
       return String(a).localeCompare(String(b));
     });
 
+    const overlapNames = overlapIds.map(id => idToName.get(id) || `Justice #${id}`);
+
     return {
       ...d,
       overlapCount: overlapIds.length,
-      overlapIds
+      overlapIds,
+      overlapNames
     };
   });
 
@@ -70,30 +77,35 @@ function addOverlapCounts(justices, {
     max: d3.max(counts)
   };
 
-  return { rows: out, stats };
+  return { rows: out, stats, idToName };
 }
-
 function drawOverlapHistogram(justicesWithOverlap, {
   selector = "#overlapHistogram",
   width = 400,
   height = 320,
-  margin = { top: 30, right: 30, bottom: 40, left: 50 }
+  margin = { top: 30, right: 30, bottom: 40, left: 50 },
+  maxNames = 18 // limit tooltip length so it doesn't become huge
 } = {}) {
 
   const root = d3.select(selector);
   root.selectAll("*").remove();
 
-  const data = justicesWithOverlap
-    .map(d => d.overlapCount)
-    .filter(Number.isFinite);
+  // ensure tooltip exists
+  const tooltip = d3.select("#tooltip").empty()
+    ? d3.select("body").append("div").attr("id","tooltip").attr("class","tooltip")
+    : d3.select("#tooltip");
 
-  if (!data.length) {
+  const rows = justicesWithOverlap
+    .filter(d => Number.isFinite(d.overlapCount));
+
+  if (!rows.length) {
     root.append("div").text("No overlap data available.");
     return;
   }
 
-  const mean = d3.mean(data);
-  const median = d3.median(data);
+  const dataNums = rows.map(d => d.overlapCount);
+  const mean = d3.mean(dataNums);
+  const median = d3.median(dataNums);
   const fmt = d3.format(".2f");
 
   const innerW = width - margin.left - margin.right;
@@ -108,20 +120,23 @@ function drawOverlapHistogram(justicesWithOverlap, {
 
   // X scale
   const x = d3.scaleLinear()
-    .domain(d3.extent(data))
+    .domain(d3.extent(dataNums))
     .nice()
     .range([0, innerW]);
 
-  // Histogram bins
-  const bins = d3.bin()
+  // Bin THE ROWS so we keep names per bar
+  const binGen = d3.bin()
+    .value(d => d.overlapCount)
     .domain(x.domain())
     .thresholds(d3.range(
       Math.floor(x.domain()[0]),
       Math.ceil(x.domain()[1]) + 1,
       1
-    ))(data);
+    ));
 
-  // Y scale
+  const bins = binGen(rows);
+
+  // Y scale (counts)
   const y = d3.scaleLinear()
     .domain([0, d3.max(bins, d => d.length)])
     .nice()
@@ -137,7 +152,33 @@ function drawOverlapHistogram(justicesWithOverlap, {
     .attr("width", d => Math.max(0, x(d.x1) - x(d.x0) - 1))
     .attr("height", d => innerH - y(d.length))
     .attr("fill", COLORS?.grey || "#B0B0B0")
-    .attr("opacity", 0.85);
+    .attr("opacity", 0.85)
+    .on("mouseenter", function(event, bin){
+      const names = bin
+        .map(d => String(d["first last"] ?? d.name ?? "").trim() || `Justice #${d["justice number order"] ?? "?"}`)
+        .sort((a,b) => a.localeCompare(b));
+
+      const shown = names.slice(0, maxNames);
+      const more = names.length > maxNames ? `… +${names.length - maxNames} more` : "";
+
+      tooltip
+        .style("opacity", 1)
+        .html(`
+          <strong>Overlap count: ${bin.x0}</strong><br>
+          Justices in bin: ${names.length}<br>
+          <div style="margin-top:6px; max-width:260px; white-space:normal;">
+            ${shown.join(", ")}${more ? `<br>${more}` : ""}
+          </div>
+        `);
+    })
+    .on("mousemove", function(event){
+      tooltip
+        .style("left", (event.clientX + 10) + "px")
+        .style("top", (event.clientY + 10) + "px");
+    })
+    .on("mouseleave", function(){
+      tooltip.style("opacity", 0);
+    });
 
   // Axes
   g.append("g")
@@ -147,7 +188,7 @@ function drawOverlapHistogram(justicesWithOverlap, {
   g.append("g")
     .call(d3.axisLeft(y).ticks(6));
 
-  // Axis labels
+  // Labels
   g.append("text")
     .attr("x", innerW / 2)
     .attr("y", innerH + 35)
@@ -161,7 +202,7 @@ function drawOverlapHistogram(justicesWithOverlap, {
     .attr("text-anchor", "middle")
     .text("Number of Justices");
 
-  // ---- Mean / Median text (upper right corner) ----
+  // Mean/Median text (upper right)
   const statsG = g.append("g")
     .attr("transform", `translate(${innerW - 5}, 5)`);
 
