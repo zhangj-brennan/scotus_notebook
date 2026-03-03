@@ -24,13 +24,17 @@
     "./js/charts/retiredComparison.js",
     "./js/charts/endReason.js",
       "./js/charts/tenureVsScatter.js",
+    "./js/charts/overlap.js",
+    "./js/charts/network.js",
+    "./js/charts/turnover.js",
+    "./js/charts/survival.js",
+    "./js/charts/hazard.js",
 
     "./js/charts/current.js",
     "./js/charts/currentAge.js",
     "./js/charts/ages.js",
     "./js/charts/tenureHistogram.js",
-    "./js/charts/longestTenure.js",
-    "./js/charts/cohort.js"
+    "./js/charts/longestTenure.js"
   ];
 
   function loadScript(src){
@@ -276,34 +280,65 @@ drawTenureScatterGrid(justices, {
   width: 260,
   height: 220
 });
+const { rows: justicesWithOverlap, stats } = addOverlapCounts(justices);
+console.log("Overlap stats:", stats);
 
-      // current justices (end reason blank)
-      const current = scotusMain.filter(function(d){ return d["end reason"]==""; });
+drawOverlapHistogram(justicesWithOverlap, { selector: "#overlapHistogram" });
 
-      // End reasons chart (all rows)
+
+const net = buildJusticeOverlapNetwork(justices);
+drawJusticeOverlapNetwork(net, { selector: "#overlapNetwork", width: 900, height: 600 });
+
+
+drawOverlapMedianByInterval(justicesWithOverlap, {
+  selector: "#overlapMedianByDecade",
+  interval: 20
+});
+
+const decadeStarts = computeDecadeStarts(justices);
+drawDecadeStartsBar(decadeStarts, { selector: "#decadeChanges", width: 800 });
+     
+
+const breaks = [1850, 1900,1920,1940, 1950,1960,1970, 1980];
+const breakSeries = buildBeforeAfterSeries(justices, breaks, { minGroupSize: 8 });
+
+drawBeforeAfterBreakScan(breakSeries, {
+  selector: "#survivalBreakScan",
+  columns: 2,
+  panelWidth: 380,
+  panelHeight: 230,
+  maxYears: 40
+});
+
+const hazardBins = computeHazardByTenureBins(justices, { binSize: 2 }); // 1-year bins
+drawHazardCurve(hazardBins, { selector: "#hazardChart", width: 700, height: 320 });
+// // current justices (end reason blank)
+      // const current = scotusMain.filter(function(d){ return d["end reason"]==""; });
+
+      // // End reasons chart (all rows)
       window.SCOTUS_CHARTS.drawEndReason(scotusMain);
 
-      // Current tenure and age charts
-      window.SCOTUS_CHARTS.drawCurrent(current, COLORS);
-      window.SCOTUS_CHARTS.drawCurrentAge(current, COLORS);
+      // // Current tenure and age charts
+      // window.SCOTUS_CHARTS.drawCurrent(current, COLORS);
+      // window.SCOTUS_CHARTS.drawCurrentAge(current, COLORS);
 
-      // Longest-serving top 10
-      const longestServing = scotusMain
-        .slice()
-        .sort(function(a,b){ return parseInt(b["days/term"]) - parseInt(a["days/term"]); })
-        .slice(0,10);
-      window.SCOTUS_CHARTS.drawLongestTenure(longestServing, COLORS);
+      // // Longest-serving top 10
+      // const longestServing = scotusMain
+      //   .slice()
+      //   .sort(function(a,b){ return parseInt(b["days/term"]) - parseInt(a["days/term"]); })
+      //   .slice(0,10);
+      // window.SCOTUS_CHARTS.drawLongestTenure(longestServing, COLORS);
 
-      // Ages at start/end histograms
-      const dataWithAges = window.SCOTUS_UTILS.getAges(scotusMain);
-      window.SCOTUS_CHARTS.drawAgeHistogram(dataWithAges, "ageAtStart", COLORS.red, "Ages at Start");
-      window.SCOTUS_CHARTS.drawAgeHistogram(dataWithAges, "ageAtEnd", COLORS.red, "Ages at End");
+      // // Ages at start/end histograms
+      // const dataWithAges = window.SCOTUS_UTILS.getAges(scotusMain);
+      // window.SCOTUS_CHARTS.drawAgeHistogram(dataWithAges, "ageAtStart", COLORS.red, "Ages at Start");
+      // window.SCOTUS_CHARTS.drawAgeHistogram(dataWithAges, "ageAtEnd", COLORS.red, "Ages at End");
 
-      // Tenure histogram (days/term)
-      window.SCOTUS_CHARTS.drawTenureHistogram(scotusMain, { bins: 25 });
+      // // Tenure histogram (days/term)
+      // window.SCOTUS_CHARTS.drawTenureHistogram(scotusMain, { bins: 25 });
 
-      // Cohort scatter + derived stats
-      window.SCOTUS_CHARTS.drawCohort(scotusMain);
+      // // Cohort scatter + derived stats
+      // window.SCOTUS_CHARTS.drawCohort(scotusMain);
 
 
     })
