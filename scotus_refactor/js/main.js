@@ -328,7 +328,6 @@ drawHazardCurve(hazardBins, { selector: "#hazardChart", width: 700, height: 320 
       // // End reasons chart (all rows)
       window.SCOTUS_CHARTS.drawEndReason(scotusMain);
 
-
     const splits = computeHazardSplitsByGroup(justices, d => (d["end reason"] || "Current"), {
   binSize: 4,
   minAtRisk: 1,
