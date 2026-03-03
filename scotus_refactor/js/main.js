@@ -320,13 +320,24 @@ drawBeforeAfterBreakScan(breakSeries, {
   maxYears: 40
 });
 
-const hazardBins = computeHazardByTenureBins(justices, { binSize: 2 }); // 1-year bins
+const hazardBins = computeHazardByTenureBins(justices, { binSize: 1 }); // 1-year bins
 drawHazardCurve(hazardBins, { selector: "#hazardChart", width: 700, height: 320 });
 // // current justices (end reason blank)
       // const current = scotusMain.filter(function(d){ return d["end reason"]==""; });
 
       // // End reasons chart (all rows)
       window.SCOTUS_CHARTS.drawEndReason(scotusMain);
+
+
+    const splits = computeHazardSplitsByGroup(justices, d => (d["end reason"] || "Current"), {
+  binSize: 4,
+  minAtRisk: 1,
+  minGroupSize: 10
+});
+
+drawHazardCurveSplits(splits, { selector: "#hazard1", width: 1100 });
+
+
 
       // // Current tenure and age charts
       // window.SCOTUS_CHARTS.drawCurrent(current, COLORS);
