@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>scotus term limits</title>
+
+  <link rel="stylesheet" href="./styles/main.css" />
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+  <div id="main">
+    <div id="tooltip" class="tooltip"></div>
+    <div class="section" id="title">
+      Notes on Supreme Court Tenure and Age
+    </div>
+
+    <div class="section">
+      There have been 116 justices on the supreme court. 
+    </div>
+  <!-- <div class="chart" id="intro"></div> -->
+
+  <!-- HTML -->
+<div class="section">
+  That is not a lot of data points. <br>It can be hard to see how the length of tenure has changed over time. 
+  <br>When grouped by decade we can see peaks in median tenure length in 1820 and from 1970 to now. <br>
+  Grouped into 30 or more year intervals, the change is less noisy.
+  <br><br>these line chart values do not include the current 9 justices
+</div>
+ <div class="section">
+  <div class="two-col">
+    <div>
+      <h2>Average and Median Tenure <br>vs Start-year intervals</h2>
+      <div id="tenureIntervalLinesStart"></div>
+    </div>
+
+    <div>
+      <h2>Average and Median Tenure <br>vs End-year intervals</h2>
+      <div id="tenureIntervalLinesEnd"></div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+</div>
+
+ <div class="section">
+      Only 1 of the current justices(red), Clarence Thomas, is among the 10 longest serving justices<br>
+      However out of the 12 justices(dark grey) whose tenure lasted past 1990 have served longer terms, only 1, Souter was on the bench for less than 20 years.
+    </div>
+  <div class="barControls">
+    <button id="sortTenure" type="button">Sort: Longest to shortest <b>tenure</b></button>
+    <button id="sortStart" type="button">Sort: Lates to earliest <b>end date</b></button>
+</div>
+
+<div class="chart-scroll">
+  <div class="chart" id="tenureBars"></div>
+</div>
+
+
+    <div class="section">
+      It is not out of the ordinary for justices to die on the bench.
+      <br>44% of Justices have died on the bench. 35% retire.
+    </div>
+    <div class="chart" id="endReason"></div>
+
+
+      <div class="section">
+     Retirement doesn't mean a short career.
+     <br>Retired justices have a median tenure of 19.7 years.
+     Longer than the group as a whole(16.3) and longer than those who died(16.2) on the bench.
+     <br>Death may cut off otherwise long careers.
+     <br><br>Age is calculated using Jan. 1st of birth year for now. 
+    </div>
+  <label style="display:flex; gap:8px; align-items:center; margin:6px 0 10px;">
+  <input type="checkbox" id="histPercentToggle">
+  Show percent (instead of counts)
+</label>
+  <div id="histGrid" class="hist-grid"></div>
+
+
+    <div class="section">
+      <br>
+      Tenure vs. Start, End, Age at start, Age at end<br>
+
+  <span class="key-square" style="background: var(--yellow);"></span>
+ In the last 50 years, very few justices have had tenures less than 20 years.
+     <br><br>Age is calculated using Jan. 1st of birth year for now. 
+<div class="chart-key">
+  <span class="key-dot" style="background: var(--red);"></span>
+  Current justices
+<br>
+</div>     
+         </div>
+  <div id="tenureScatterGrid"></div>
+
+    <div class="section">
+      Over their term, a justice can be in many different cohorts. Each cohort is a unique set of justices serving at the same time.
+      <br><br> There are 222 cohorts total. <br><br>Jackson is only in 1 cohort because she is the newest Justice and has 8 peers.
+      <br><br>Some longer serving justices are part of many cohorts, Brennan served in 14 different cohorts, with 22 peers.
+      <br><br>Note court sizes varied over time until recently.
+      <br><br> A cohort is only created when a new person is confirmed, to compensate for the gap between when someone leaves and new justice is confirmed.
+    </div>
+    <div class="chart" id="cohort">
+      TKTK chart here is how many cohorts each justice as been in vs. their tenure
+
+
+
+      
+    </div>
+
+    <div class="section">
+      Each time a new justice is appointed, the average tenure (and age) of the cohort decreases.
+      Here is the median tenure and the average tenure of the court over time
+    </div>
+    <div class="chart" id="averageTotalTenure">
+      TKTK chart: average and median tenure
+    </div>
+    <div class="chart" id="averageTotalAge">
+      TKTK chart: average and median age
+    </div>
+
+    <div class="section">
+      but ...<br>
+      let's think about it another way...<br>
+      here is everyone on day 1....
+    </div>
+    <div class="chart" id="hazard1">model</div>
+  </div>
+
+  <!-- App bootstrap -->
+  <script src="./js/main.js"></script>
+</body>
+</html>

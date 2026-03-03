@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="charts.js"></script>
+  <script src="endReason.js"></script>
+  <script src="cohort.js"></script>
+    <title>scotus term limits</title>
+    <style>
+        @font-face {
+      font-family: "Benton";
+      src: url("Benton Sans/Benton Sans Book.otf");
+    }
+    @font-face {
+      font-family: "BentonStrong";
+      src: url("Benton Sans/Benton Sans Bold.otf");
+    }
+    body{
+        font-family: "Benton";font-size:14px;
+    }
+    svg text { font-family: "Benton";font-size:14px;}
+    button { margin-right: 10px; }
+    .section{
+        font-family: "Benton";
+        border:1px solid black;        
+        margin:10px;
+        padding:10px;
+    }
+    #title{
+        font-size:24px;
+        font-weight:700;
+        border:none;
+    }
+    #main{
+        width:60%;
+        margin-left:auto;
+        margin-right:auto;
+        padding:10px;
+    }
+    #averageTotalTenure{
+        width:100%;
+        overflow:auto;
+    }
+    </style>
+</head>
+<body>
+    <div id="chart"></div>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+  window.HIST_DAYS_TERM = { csvUrl: "SCOTUS - combined_data.csv", bins: 25 };
+</script>
+
+    <!-- Your content will go here -->
+    <div id="main">
+<div class="section" id="title">
+    Notes on Supreme court | Term limits | Hazard model
+</div>
+
+
+<div class="section">
+    Since xx there have been xx justices on the supreme court. TKTK
+</div>
+<div class="chart" id="intro">
+</div>
+
+<div class="section">
+    It is not out of the ordinary for justices to die on the bench.
+</div>
+<div class="chart" id="endReason">
+</div>
+
+<div class="section">
+    Here are our 9 current justices, when they started, and how long they have served so far
+</div>
+<div class="chart" id="current">
+</div>
+
+<div class="section">
+    Here is how old they are now
+</div>
+<div class="chart" id="currentAge">
+</div>
+
+<div class="section" id="ageStartText">
+   TKTK % start between age 50-60<br>
+   TKTK % end between age 70-80
+</div>
+<div class="chart" id="ages">
+</div>
+
+
+<div class="section" id="tenureText">
+  median term is ## long
+</div>
+<div class="chart" id="tenure">
+    TKTK chart histogram of term lengths
+</div>
+
+<div class="section">
+    Only 1 of the current justices, Clarence Thomas, is among the 10 longest serving justices
+</div>
+<div class="chart" id="longestTenure">
+</div>
+
+
+<div class="section">
+    Over their term, a justice can be in many different cohorts. Each cohort is a unique set of justices serving at the same time.
+  <br> <br> There are 222 cohorts total. <br><br>Jackson is only in 1 cohort because she is the newest Justice and has 8 peers. 
+    <br><br>Some longer serving justices are part of many cohorts, Brennan served in 14 different cohorts, with 22 peers. 
+   <br> <br>Note court sizes varied over time until recently.
+   <br><br> A cohort is only created when a new person is confirmed, to compensate for the gap between when someone leaves and new justice is confirmed. 
+
+</div>
+<div class="chart" id="cohort">
+    TKTK chart here is how many cohorts each justice as been in vs. their tenure
+</div>
+
+
+<div class="section">
+    Each time a new justice is appointed, the average tenure (and age) of the cohort decreases. 
+        Here is the median tenure and the average tenure of the court over time
+</div>
+<div class="chart" id="averageTotalTenure">
+   TKTK chart: average and median tenure
+</div>
+<div class="chart" id="averageTotalAge">
+   TKTK chart: average and median age
+</div>
+
+
+<div class="section">
+    but ...<br>
+    let's think about it another way...<br>
+    here is everyone on day 1....
+</div>
+<div class="chart" id="hazard1">
+    model
+</div>
+
+</div>
+
+<script src="hist_days_term.js"></script>
+
+    <script>
+
+//charts:
+//current
+//average age
+//average tenure
+//longest serving
+//think of a wrap up
+
+        const red = "#ED1C24"
+        const blue = "#3995B2"
+        const yellow = "#FFCF01"
+        const grey = "#B0B0B0"
+
+        Promise.all([d3.csv("SCOTUS - combined_data.csv")])
+        .then(function(data){
+            var scotusMain = data[0]
+            //console.log(scotusMain)
+
+            var current = scotusMain.filter(function(d){
+                return d["end reason"]== ""
+            })
+            var startDate = d3.min(scotusMain,function(d){return new Date(d.start)})
+            var endDate = d3.max(scotusMain,function(d){return new Date(d.end)})
+            //console.log(startDate,endDate)
+
+            drawCurrent(current)
+            drawCurrentAge(current)
+           // getAverageTotal(scotusMain,startDate,endDate,"#averageTotalTenure",40,"start","end")
+
+            var longestServing = scotusMain.sort(function(a,b){
+                return parseInt(b["days/term"])-parseInt(a["days/term"])
+            }).slice(0,10)
+            drawLongest(longestServing)
+            var dataWithAges = getAges(scotusMain)
+
+//            var dataWithoutCurrent = 
+
+            // for(var y = 1950; y<2010; y+=100){
+            //     var startY = y
+            //     var endY = y+100
+            //     var filtered = dataWithAges.filter(function(d){
+            //       return parseInt(d.start.split("/")[2])<=endY && parseInt(d.start.split("/")[2])>startY
+            //     })
+            //     drawAgeArc(filtered,startY,endY)
+            // }
+            drawAge(dataWithAges,"ageAtStart",red,"Ages at Start")
+            drawAge(dataWithAges,"ageAtEnd",red,"Ages at End")
+        })
+
+        function drawCurrentAge(data){
+            //console.log(data)
+            var barH = 10;
+            var w = 800
+            var p = 150
+            var h = 250
+            var hp = 50
+            var gap = 10
+
+            var ages = []
+
+                var longest = d3.max(data,function(d){
+                    ages.push((new Date(d.end)-new Date(d.birth))/365/24/1000/60/60)
+                return Math.round((new Date(d.end)-new Date(d.birth))/365/24/1000/60/60)
+            })
+             var shortest = d3.min(data,function(d){
+                return Math.round((new Date(d.end)-new Date(d.birth))/365/24/1000/60/60)
+            })            
+
+
+           var averageAge = average(ages)
+
+            d3.select("#currentAge").append("div").attr("class","section")
+            .html("Current Justices<br>Oldest: "+longest+ " Years<br>"+"Youngest: "+shortest+" Years<br>Average: "+averageAge+" Years")
+            
+            var svg = d3.select("#currentAge").append("svg")
+            .attr("width",w)
+            .attr("height",h)
+
+            var earliest = d3.min(data, function(d){
+                return new Date(d.birth)
+            })
+            var latest = d3.max(data, function(d){
+                return new Date()
+            })
+            var daysScale = d3.scaleLinear()
+                .domain([earliest,latest])
+                .range([p,w-p])
+
+            var xAxis = d3.axisBottom().scale(daysScale).ticks(10)
+            //.ticks([new Date("1/1/2000"),new Date("1/1/1995")])
+            .tickFormat(function(d){return new Date(d).getFullYear()})
+            svg.append("g").call(xAxis).attr("transform","translate(0,"+(h-hp)+")")
+
+            svg.selectAll(".currentJustice")
+            .data(data)
+            .join("rect")
+            .attr("width",function(d){
+                return daysScale(new Date(d.end))-daysScale(new Date(d.start))
+            })
+            .attr("height",4)
+            .attr("x",function(d){
+                return daysScale(new Date(d.start))
+            })
+            .attr("y",function(d,i){return (i+1.2)*(barH+gap)})
+            .attr("fill",blue)
+
+            svg.selectAll(".currentJustice")
+            .data(data)
+            .join("rect")
+            .attr("width",function(d){
+                return daysScale(new Date(d.start))-daysScale(new Date(d.birth))
+            })
+            .attr("height",4)
+            .attr("x",function(d){
+                return daysScale(new Date(d.birth))-1
+            })
+            .attr("y",function(d,i){return (i+1.2)*(barH+gap)})
+            .attr("fill",grey)
+
+             svg.selectAll(".durationLabel")
+            .data(data)
+            .join("text")
+            .attr("class","durationLabel")
+            .text(function(d,i){
+              //  console.log(d,d["state"])
+                var age = Math.round((new Date(d.end)-new Date(d.birth))/365/1000/60/24/60)
+                if(i==0){
+                    return age+" Years old*"
+                }else{
+                    return age
+                }
+                })
+            .attr("x",function(d){
+                return daysScale(new Date(d.end))+5
+            })
+            .attr("y",function(d,i){return (i+1.5)*(barH+gap)})
+            .attr("fill","#000")
+
+            svg.selectAll(".nameLabel")
+            .data(data)
+            .join("text")
+            .attr("class","durationLabel")
+            .text(function(d){return d["first last"]})
+            .attr("x",function(d){
+                return daysScale(new Date(d.birth))-10
+            })
+            .attr("y",function(d,i){return (i+1.5)*(barH+gap)})
+            .attr("text-anchor","end")
+            .attr("fill","#000")
+
+        }
+
+function drawAgeArc(data,start,end){
+   // console.log(data)
+    var w = 800
+    var h = 200
+    var p = 20
+    var b = 8
+    var svg = d3.select("#ages")
+        .append("svg")
+        .attr("width",w)
+        .attr("height",h)
+        .append("g")
+        .attr("transform","translate("+p+","+(0)+")")
+
+        svg.append('text').text("Justices who start "+start+" - "+end).attr("x",20).attr("y",20)
+
+        var keys = svg.append("g")
+        keys.append("text").text("Start").attr("x",25).attr("y",35)
+        keys.append("text").text("End").attr("x",25).attr("y",50)
+        keys.append("circle").attr("r",3).attr("cx",20).attr("cy",30).attr("fill",blue).style("opacity",.5)
+        keys.append("circle").attr("r",3).attr("cx",20).attr("cy",45).attr("fill",red).style("opacity",.5)
+
+         var minAge = d3.min(data,function(d){return d.ageAtStart})
+            var maxAge = d3.max(data,function(d){return d.ageAtEnd})
+            var aScale = d3.scaleLinear()
+            .domain([30,100])
+            .range([0,w-p*2])
+
+        var xAxis = d3.axisBottom().scale(aScale).ticks(5)
+        svg.append("g").call(xAxis).attr("transform","translate(0,"+(h-p*2)+")")
+        svg.append("g").append("text").text("Age of Justices").attr("text-anchor","middle")
+        .attr("transform","translate("+(w-p*2)/2+","+(h-3)+")")
+
+//averages
+        var startAges = []
+        var endAges = []
+        var tenures = []
+
+        for(var i in data){
+            var startAge = data[i].ageAtStart
+            var endAge = data[i].ageAtEnd
+
+            startAges.push(startAge)
+            endAges.push(endAge)
+            tenures.push(endAge-startAge)
+
+            var midpoint = (startAge+endAge)/2
+            var third = startAge+(endAge-startAge)/4
+            var third2 = startAge+(endAge-startAge)/4*3
+            var dif = endAge-startAge
+           // console.log(dif)
+            var hScale = d3.scaleLinear().domain([1,50]).range([h-p*2,p*2])
+            var formatted = [{x:aScale(startAge),y:h-p*2},
+            {x:aScale(third),y:hScale(dif)},
+                        {x:aScale(third2),y:hScale(dif)},
+              {x:aScale(endAge),y:h-p*2}]
+
+            //  console.log(h-p*2,aScale(endAge),endAge)
+            svg//.selectAll(".ends")
+            .append("circle").attr("class","ends")
+            .attr("cx",aScale(endAge)).attr("cy",h-p*2)
+            .attr("r",3).attr("fill",red).style("opacity",.5)
+             svg//.selectAll(".ends")
+            .append("circle").attr("class","ends")
+            .attr("cx",aScale(startAge)).attr("cy",h-p*2)
+            .attr("r",3).attr("fill",blue).style("opacity",.5)
+           
+            svg//.selectAll(".arc")
+                .append("path")
+                .datum(formatted)
+                .attr("d",d3.line()
+                .x(function(d){return d.x})
+                .y(function(d){
+                    return d.y})
+                .curve(d3.curveBasis)
+                )
+                .attr("fill","none")
+                .attr("stroke","black")
+                .attr("opacity",.3)
+                .attr("stroke-width",2)
+        }
+
+        var averageStart = average(startAges)
+        var averageEnd = average(endAges)
+        var averageTenure = average(tenures)
+
+        svg.append("text").text("Average start age: "+ averageStart).attr("x",20).attr("y",70)
+        svg.append("text").text("Average end age: "+ averageEnd).attr("x",20).attr("y",85)
+        svg.append("text").text("Average tenure: "+ averageTenure).attr("x",20).attr("y",100)
+    
+
+}
+      
+function getMedian(arr) {
+    var sorted = arr.sort(function (a, b) {
+        return a - b;
+    });
+
+    var length = sorted.length;
+
+    if (length % 2 === 1) {
+        return sorted[(length / 2) - 0.5];
+    } else {
+        return (sorted[length / 2] + sorted[(length / 2) - 1]) / 2;
+    }
+}
+
+    function drawAge(data,column,color,title){
+            var w = 800
+            var h = 200
+            var p = 50
+            var b = 8
+            var svg = d3.select("#ages")
+            .append("svg")
+            .attr("width",w)
+            .attr("height",h)
+            .append("g")
+            .attr("transform","translate("+p+","+(p)+")")
+            svg.append("text").text(title).attr("x",w-p*2).attr("y",0).style("text-anchor","end")
+                //.style("font-size",18)
+            svg.append("text").text("Age").attr("x",w/2).attr("y",h-p*1.2).style("text-anchor","middle")
+            svg.append("text").text("# of Justices").attr("x",-25).attr("y",-10).style("text-anchor","start")
+
+            var minAge = d3.min(data,function(d){return d.ageAtStart})
+            var maxAge = d3.max(data,function(d){return d.ageAtEnd})
+            var aScale = d3.scaleLinear()
+            .domain([minAge,maxAge])
+            .range([0,w-p*2])
+
+
+        var agesOnlyArray = []
+        for(var i in data){
+            agesOnlyArray.push(parseInt(data[i][column]))
+        }
+        var median = getMedian(agesOnlyArray)
+
+        svg.append("text").text("Median: "+median).attr("x",w-p*2).attr("y",20).style("text-anchor","end")
+
+        var yScale = d3.scaleLinear().domain([0,10]).range([0,h-p*2])
+        var yScaleInverse = d3.scaleLinear().domain([0,10]).range([h-p*2,0])
+            var yAxis = d3.axisLeft().scale(yScaleInverse).ticks(3)
+            svg.append("g").call(yAxis)
+                   // .attr("transform","translate("+p+","+0+")")
+
+        var xAxis = d3.axisBottom().scale(aScale)
+        svg.append("g").call(xAxis)
+        .attr("transform","translate(0,"+(h-p*2)+")")
+
+            const histogramEnd = d3.histogram()
+
+      .value(function(d) { return d.ageAtEnd; })   // I need to give the vector of value
+      .domain(aScale.domain())  // then the domain of the graphic
+      .thresholds(aScale.ticks(maxAge-minAge)); // then the numbers of bins
+
+        var endGroups = Object.groupBy(data,function(d){return d[column]})
+
+             const histogramStart = d3.histogram()
+      .value(function(d) { return d[column]; })   // I need to give the vector of value
+      .domain(aScale.domain())  // then the domain of the graphic
+      .thresholds(aScale.ticks(maxAge-minAge)); // then the numbers of bins
+
+        const binsStart = histogramStart(data);
+            svg.selectAll(".ageStart")
+            .data(binsStart)
+            .join("rect")
+            .attr("width",b)
+            .attr("height",function(d){
+                return yScale(d.length)
+            })
+            .attr("y",function(d){
+                return h-yScale(d.length)-p*2
+            })
+            .attr("x",function(d,i){
+                return aScale(d.x0)
+            })
+            .attr("opacity",.3)
+            .attr("fill",color)
+
+        }
+
+
+
+
+        function getAges(data){
+        for(var i in data){
+            if(data[i]["start"]!=undefined){
+            var justice = data[i]
+           // console.log(justice)
+            var ageStart = justice["start"].split("/")[2]-justice["birth"]
+            var ageEnd = justice["end"].split("/")[2]-justice["birth"]
+          //  console.log(age)
+            data[i]["ageAtStart"]=ageStart
+            data[i]["ageAtEnd"]=ageEnd
+            }
+        }
+        return data
+        }
+    function getAverageTotal(data,startDate,endDate,svgName,max,startColumn,endColumn){
+        //   console.log(startDate,endDate)
+        var averages = []
+        for(var i = new Date(startDate); i< new Date(endDate);i.setDate(i.getDate()+1)){
+            var totalDays = 0
+            var totalJs = 0
+            for(var d in data){
+                var j= data[d]
+                var jStart = new Date(j[startColumn])
+                var jEnd = new Date(j[endColumn])
+                if(jStart<=i && jEnd>=i){
+                    var jDays = parseInt(j["days/term"])
+                    totalDays+=jDays
+                    totalJs +=1
+                }
+            }
+           // console.log(i,totalJs,totalDays)
+            averages.push({date:String(i), days:totalDays,justices:totalJs,average:totalDays/totalJs})
+            //break
+        }
+
+        averages = averages.sort(function(a,b){
+            return new Date(a.date)-new Date(b.date)
+        })
+        //console.log(averages)
+        var segment = 100
+        var h =250
+        var p = 50
+        //var max = d3.max(averages, function(d){return d.average})
+
+        var xScale = d3.scaleLinear()
+        .domain([startDate,endDate])
+        .range([0,4000])
+
+        var xAxis = d3.axisBottom().scale(xScale) 
+        .tickFormat(function(d){return new Date(d).getFullYear()})
+        .ticks(30)
+        //.ticksValues([new Date("1/1/1800"),new Date("1/1/1900"),new Date("1/1/2000")])
+       
+        var ATScale = d3.scaleLinear()
+            .domain([0,max*365])
+            .range([h-p,0])
+
+         
+        var yAxis = d3.axisLeft().scale(ATScale)
+        .ticks(7)
+        .tickFormat(function(d){ return Math.round(d/365)+" years"})
+         
+
+        var svg = d3.select(svgName).append("svg")
+            .attr("width",4000)
+            .attr("height",h)
+
+        svg.append("g").call(xAxis)
+        .attr("transform","translate(70,200)")
+
+        svg.append("g").call(yAxis)
+        .attr("transform","translate(70,0)")
+        
+        var line = d3.line()
+            .x(function(d,i){return xScale(new Date(d.date))})
+            .y(function(d,i){
+                return ATScale(d.average)
+            })
+    .curve(d3.curveCatmullRom.alpha(.1)); 
+
+        svg//.selectAll(".averageTotal")
+        .append("g").attr("transform","translate(70,0)")
+        .append("path")
+        .datum(averages)
+        .attr("d",line)
+        .attr("fill","none")
+        .attr("stroke",blue)
+        .attr("stroke-width",2)
+        
+
+    }
+
+    </script>
+</body>
+</html>

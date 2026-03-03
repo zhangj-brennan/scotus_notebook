@@ -1,0 +1,199 @@
+@font-face {
+  font-family: "Benton";
+  src: url("Benton Sans/Benton Sans Book.otf");
+}
+@font-face {
+  font-family: "BentonStrong";
+  src: url("Benton Sans/Benton Sans Bold.otf");
+}
+
+:root{
+  --red: #ED1C24;
+  --blue: #3995B2;
+  --yellow: #FFCF01;
+  --grey: #B0B0B0;
+  --black:#000000;
+  --dark:#777;
+  --text: #000;
+  --border: #000;
+}
+
+body{
+  font-family: "Benton";
+  font-size: 16px;
+  color: var(--text);
+  margin: 0;
+  padding: 0;
+}
+/* =========================
+   Tooltip
+========================= */
+.tooltip{
+  position: fixed;
+  pointer-events: none;
+  opacity: 0;
+  background: #fff;
+  border: 1px solid #000;
+  padding: 6px 8px;
+  font-size: 12px;
+  line-height: 1.3;
+  white-space: nowrap;
+  z-index: 1000;
+}
+svg text{
+  font-family: "Benton";
+  font-size: 10px;
+}
+
+button { margin-right: 10px; }
+
+#main{
+  width: 80%;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 10px;
+}
+
+.section{
+  font-family: "Benton";
+  border-top: 1px solid var(--border);
+  margin: 10px;
+  padding: 10px;
+}
+
+#title{
+  font-size: 24px;
+  font-weight: 700;
+  border: none;
+}
+
+.chart{
+  margin: 0 10px 10px 10px;
+}
+
+#averageTotalTenure{
+  width: 100%;
+  overflow: auto;
+}
+
+.y-grid line{
+  stroke: #000;
+  stroke-opacity: 0.15;
+}
+
+.y-grid path{
+  display: none; /* removes axis spine */
+}
+.barControls{
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+
+.barControls button{
+  border: 1px solid var(--border);
+  background: #fff;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.barControls button.is-active{
+  background: #000;
+  color: #fff;
+}
+
+.hist-grid{
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr; /* Everyone | Retired | Died on Court */
+  gap: 14px;
+}
+
+.hist-card{
+  border: 1px solid var(--border);
+  padding: 10px;
+}
+
+.hist-title{
+  font-family: "BentonStrong";
+  font-size: 14px;
+  margin: 0 0 8px 0;
+}
+
+.scatter-grid{
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.scatter-card{
+  border: 1px solid var(--border);
+  padding: 8px;
+}
+
+.scatter-title{
+  font-family: "BentonStrong";
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.scatter-tooltip{
+  position: fixed;
+  pointer-events: none;
+  background: #fff;
+  border: 1px solid #000;
+  padding: 6px 8px;
+  font-size: 12px;
+  line-height: 1.3;
+  opacity: 0;
+  z-index: 2000;
+}
+
+/* scatter highlight across panels */
+.scatter-dot{
+  transition: r 120ms ease, opacity 120ms ease;
+}
+
+.scatter-dot.is-dim{
+  opacity: 0.15;
+}
+
+.scatter-dot.is-active{
+  opacity: 1;
+  r: 6; /* note: SVG doesn't read r from CSS everywhere, JS sets r too */
+  stroke: #000;
+  stroke-width: 1px;
+}
+.chart-key{
+  font-family: "Benton";
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 10px;
+}
+
+.key-dot{
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.key-square{
+  width: 20px;
+  height: 10px;
+  display: inline-block;
+}
+
+.key-dot{
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.two-col{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  align-items: start;
+}
