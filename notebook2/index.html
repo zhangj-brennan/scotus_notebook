@@ -303,7 +303,7 @@ function deriveJustices(rows) {
       tenure_years = (end_dt - start_dt) / MS_PER_YEAR;
     }
 
-    const isCurrent = String(d["end reason"] ?? "").trim() === "";
+    const isCurrent = String(d["end reason"] ?? "").trim() === "Current";
 
     return {
       ...d,
@@ -362,10 +362,36 @@ function deriveJustices(rows) {
     };
   });
 
-  return merged.filter(d =>
-    Number.isFinite(d.tenure_years) &&
-    d.tenure_years >= 0
-  );
+ return merged.filter(d =>
+  d.start_dt instanceof Date
+);
+}
+
+function makeSyntheticAlito(justices) {
+  const today = new Date();
+  const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000;
+
+  const alitoBase = justices.find(d => String(d["justice number order"]) === "110");
+
+  if (!alitoBase) {
+    console.warn("Synthetic Alito could not be created: justice 110 not found.");
+    return null;
+  }
+
+  const tenure_years =
+    alitoBase.start_dt instanceof Date
+      ? (today - alitoBase.start_dt) / MS_PER_YEAR
+      : alitoBase.tenure_years;
+
+  return {
+    ...alitoBase,
+    "justice number order": "110_synthetic",
+    end_dt: today,
+    end: `${today.getMonth() + 1}/${today.getDate()}/${today.getFullYear()}`,
+    isCurrent: false,
+    tenure_years,
+    "end reason": "Synthetic retirement as of today"
+  };
 }
 
 /* =========================
@@ -486,6 +512,7 @@ function getValidBreakYears(justices, {
 ========================= */
 function drawBeforeAfterBreakSingle(series, {
   selector = "#survivalSliderChart",
+  comparisonSeries = null,
   width = 860,
   height = 360,
   margin = { top: 18, right: 20, bottom: 36, left: 46 },
@@ -543,6 +570,31 @@ function drawBeforeAfterBreakSingle(series, {
     .attr("y", -34)
     .attr("text-anchor", "middle")
     .text("Survival probability");
+
+      // comparison lines: synthetic Alito included
+  if (comparisonSeries) {
+    if (comparisonSeries.before.curve.length) {
+      g.append("path")
+        .datum(comparisonSeries.before.curve)
+        .attr("fill", "none")
+        .attr("stroke", "red")
+        .attr("stroke-width", 1)
+        .attr("opacity", 0.9)
+        .attr("stroke-dasharray", "3,2")
+        .attr("d", line);
+    }
+
+    if (comparisonSeries.after.curve.length) {
+      g.append("path")
+        .datum(comparisonSeries.after.curve)
+        .attr("fill", "none")
+        .attr("stroke", "green")
+        .attr("stroke-width", 1)
+        .attr("opacity", 0.9)
+        .attr("stroke-dasharray", "3,2")
+        .attr("d", line);
+    }
+  }
 
   if (series.before.curve.length) {
     g.append("path")
@@ -672,6 +724,17 @@ function initBreakSlider(justices, {
     const idx = +slider.value;
     const breakYear = validBreakYears[idx];
     const series = buildBeforeAfterForBreak(justices, breakYear, { minGroupSize });
+    const syntheticAlito = makeSyntheticAlito(justices);
+    
+const justicesWithAlito = syntheticAlito
+  ? [...justices, syntheticAlito]
+  : justices;
+
+const comparisonSeries = buildBeforeAfterForBreak(
+  justicesWithAlito,
+  breakYear,
+  { minGroupSize }
+);
 if (series) {
   
   console.log(
@@ -707,12 +770,17 @@ if (series) {
     document.getElementById("beforeMedian").textContent = medBefore != null ? fmt(medBefore) : "—";
     document.getElementById("afterMedian").textContent = medAfter != null ? fmt(medAfter) : "—";
 
-    drawBeforeAfterBreakSingle(series, {
-      selector,
-      width: CHART_WIDTH,
-      height: CHART_HEIGHT,
-      maxYears
-    });
+  drawBeforeAfterBreakSingle(series, {
+  selector,
+  comparisonSeries,
+  width: CHART_WIDTH,
+  height: CHART_HEIGHT,
+  maxYears
+});
+
+console.log("main total:", series ? series.before.n + series.after.n : null);
+console.log("comparison total:", comparisonSeries ? comparisonSeries.before.n + comparisonSeries.after.n : null);
+console.log("synthetic Alito:", syntheticAlito);
   }
 
   slider.addEventListener("input", update);
