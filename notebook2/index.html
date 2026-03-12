@@ -198,7 +198,7 @@
 </head>
 <body>
 <div id="main">
-  <div id="title">SCOTUS survival break slider</div>
+  <div id="title">SCOTUS notebook 2</div>
 
   <div class="section">
     PLACEHOLDER TEXT:
@@ -588,8 +588,8 @@ function drawBeforeAfterBreakSingle(series, {
       g.append("path")
         .datum(comparisonSeries.after.curve)
         .attr("fill", "none")
-        .attr("stroke", "green")
-        .attr("stroke-width", 1)
+        .attr("stroke", "red")
+        .attr("stroke-width", 2)
         .attr("opacity", 0.9)
         .attr("stroke-dasharray", "3,2")
         .attr("d", line);
@@ -690,6 +690,27 @@ function drawBeforeAfterBreakSingle(series, {
     .attr("y", 28)
     .attr("text-anchor", "end")
     .text(`${series.after.label} (n=${series.after.n})`);
+
+
+    if (comparisonSeries) {
+   
+
+    leg.append("line")
+      .attr("x1", -130)
+      .attr("x2", -110)
+      .attr("y1", 48)
+      .attr("y2", 48)
+      .attr("stroke", "red")
+              .attr("stroke-dasharray", "3,2")
+
+      .attr("stroke-width", 2);
+
+    leg.append("text")
+      .attr("x", 0)
+      .attr("y", 50)
+      .attr("text-anchor", "end")
+      .text("with synthetic Alito");
+  }
 }
 
 /* =========================
