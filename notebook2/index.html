@@ -17,7 +17,6 @@
 
   :root{
     --text:#000;
-    --border:#000;
     --light:#bdbdbd;
     --dark:#000;
     --bg:#fff;
@@ -29,8 +28,7 @@
     padding: 0;
     color: var(--text);
     background: var(--bg);
-        font-size: 16px;
-
+    font-size: 16px;
   }
 
   #main{
@@ -48,14 +46,13 @@
   #title{
     font-family: "BentonStrong", sans-serif;
     font-size: 24px;
-    border: none;
     padding-left: 0;
     padding-right: 0;
   }
 
   .controls{
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr;
     gap: 12px;
     align-items: center;
   }
@@ -72,15 +69,63 @@
     align-items: center;
   }
 
-  input[type="range"]{
-    width: 100%;
+  .slider-label{
+    text-align: center;
+    font-size: 16px;
+    margin-bottom: 6px;
+    font-family: "BentonStrong", sans-serif;
   }
 
-  .meta{
-    display: flex;
-    gap: 18px;
-    flex-wrap: wrap;
-    font-family:"BentonStrong";
+  #breakYearReadout{
+    font-size: 20px;
+  }
+
+  input[type="range"]{
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 14px;
+    background: transparent;
+  }
+
+  input[type="range"]::-webkit-slider-runnable-track{
+    height: 4px;
+    background: #000;
+    border-radius: 2px;
+  }
+
+  input[type="range"]::-moz-range-track{
+    height: 4px;
+    background: #000;
+    border-radius: 2px;
+  }
+
+  input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #000;
+    cursor: pointer;
+    margin-top: -5px;
+  }
+
+  input[type="range"]::-moz-range-thumb{
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #000;
+    border: none;
+    cursor: pointer;
+  }
+
+  input[type="range"]:hover::-webkit-slider-thumb{
+    transform: scale(1.15);
+  }
+
+  input[type="range"]:hover::-moz-range-thumb{
+    transform: scale(1.15);
   }
 
   .chart-wrap{
@@ -88,7 +133,7 @@
   }
 
   svg{
-    display:block;
+    display: block;
   }
 
   .axis path,
@@ -125,139 +170,88 @@
     z-index: 9999;
   }
 
-  .caption{
-    font-size: 13px;
-    line-height: 1.4;
+  .highlight{
+    font-family:"BentonStrong";
   }
 
-  .small{
-    font-size: 12px;
+  #summaryTable{
+    width: 50%;
+    border-collapse: collapse;
+    font-size: 16px;
   }
-  /* =========================
-   Slider styling
-========================= */
 
-input[type="range"]{
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 14px;
-  background: transparent;
-}
+  #summaryTable th{
+    text-align: left;
+    border-bottom: 1px solid #000;
+    padding: 4px 6px;
+  }
 
-/* Track */
+  #summaryTable td{
+    padding: 4px 6px;
+  }
 
-input[type="range"]::-webkit-slider-runnable-track{
-  height: 4px;
-  background: #000;
-  border-radius: 2px;
-}
-
-input[type="range"]::-moz-range-track{
-  height: 4px;
-  background: #000;
-  border-radius: 2px;
-}
-
-/* Thumb */
-
-input[type="range"]::-webkit-slider-thumb{
-  -webkit-appearance: none;
-  appearance: none;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #000;
-  cursor: pointer;
-  margin-top: -5px; /* aligns circle with track */
-}
-
-input[type="range"]::-moz-range-thumb{
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #000;
-  border: none;
-  cursor: pointer;
-}
-.highlight{
-  font-family:"BentonStrong";
-}
-/* Hover / focus */
-
-input[type="range"]:hover::-webkit-slider-thumb{
-  transform: scale(1.15);
-}
-
-input[type="range"]:hover::-moz-range-thumb{
-  transform: scale(1.15);
-}
-.slider-label{
-  text-align: center;
-  font-size: 16px;
-  margin-bottom: 6px;
-  font-family: "BentonStrong", sans-serif;
-}
-
-#breakYearReadout{
-  font-size: 20px;
-}
+  #summaryTable td:nth-child(2),
+  #summaryTable td:nth-child(3){
+    text-align: right;
+  }
 </style>
 </head>
 <body>
 <div id="main">
   <div id="title">SCOTUS survival break slider</div>
-  <div class="section">PLACEHOLDER TEXT:
-    <p>A <span class="highlight">survival rate</span> shows the chance that something continues past a certain point in time. In this chart, it represents the probability that a Supreme Court justice is still serving after a given number of years on the Court.
-    </p><p>
-For example, if the survival rate at 10 years is 0.80, that means about 80% of justices who started are still on the Court after 10 years, while about 20% have left. As time goes on, the survival line gradually drops because more justices retire, die, or otherwise leave the Court.</p>
+
+  <div class="section">
+    PLACEHOLDER TEXT:
+    <p>
+      A <span class="highlight">survival rate</span> shows the chance that something continues past a certain point in time.
+      In this chart, it represents the probability that a Supreme Court justice is still serving after a given number of years on the Court.
+    </p>
+    <p>
+      For example, if the survival rate at 10 years is 0.80, that means about 80% of justices who started are still on the Court after
+      10 years, while about 20% have left. As time goes on, the survival line gradually drops because more justices retire, die,
+      or otherwise leave the Court.
+    </p>
   </div>
 
   <div class="section">
     <div class="controls">
-  <div class="slider-wrap">
+      <div class="slider-wrap">
+        <div class="slider-label">
+          Break year: <strong id="breakYearReadout">—</strong>
+        </div>
 
-    <div class="slider-label">
-      Break year: <strong id="breakYearReadout">—</strong>
+        <div class="slider-row">
+          <div id="minYearLabel">—</div>
+          <input id="breakSlider" type="range" min="0" max="100" step="1" value="0" />
+          <div id="maxYearLabel">—</div>
+        </div>
+      </div>
     </div>
-
-    <div class="slider-row">
-      <div id="minYearLabel">—</div>
-      <input id="breakSlider" type="range" min="0" max="100" step="1" value="0" />
-      <div id="maxYearLabel">—</div>
-    </div>
-
-
-  </div>
-</div>
   </div>
 
-  <div class="section meta">
   <div class="section">
-  <table id="summaryTable">
-    <thead>
-      <tr>
-        <th>Group</th>
-        <th>n</th>
-        <th>Median tenure (years)</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td id="beforeLabel">Before</td>
-        <td id="beforeN">—</td>
-        <td id="beforeMedian">—</td>
-      </tr>
-      <tr>
-        <td id="afterLabel">After</td>
-        <td id="afterN">—</td>
-        <td id="afterMedian">—</td>
-      </tr>
-    </tbody>
-  </table>
-</div>
+    <table id="summaryTable">
+      <thead>
+        <tr>
+          <th>Group</th>
+          <th>#Justices</th>
+          <th>Median Tenure</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td id="beforeLabel">Before</td>
+          <td id="beforeN">—</td>
+          <td id="beforeMedian">—</td>
+        </tr>
+        <tr>
+          <td id="afterLabel">After</td>
+          <td id="afterN">—</td>
+          <td id="afterMedian">—</td>
+        </tr>
+      </tbody>
+    </table>
   </div>
-
 
   <div class="section chart-wrap">
     <div id="survivalSliderChart"></div>
@@ -283,23 +277,26 @@ function parseMDY(s) {
   if (!s) return null;
   const parts = String(s).trim().split("/");
   if (parts.length !== 3) return null;
+
   const m = +parts[0] - 1;
   const d = +parts[1];
   const y = +parts[2];
   const dt = new Date(y, m, d);
+
   return isNaN(dt) ? null : dt;
 }
 
 function deriveJustices(rows) {
+  console.log(rows)
   const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000;
 
-  // first parse every raw row
   const parsed = rows.map(d => {
     const start_dt = parseMDY(d.start);
     const end_dt = parseMDY(d.end);
 
     let tenure_years = null;
     const daysTerm = Number(String(d["days/term"] ?? "").replace(/,/g, ""));
+
     if (Number.isFinite(daysTerm) && daysTerm > 0) {
       tenure_years = daysTerm / 365.25;
     } else if (start_dt && end_dt) {
@@ -317,38 +314,36 @@ function deriveJustices(rows) {
     };
   });
 
-  // group rows by justice number
   const grouped = d3.group(parsed, d => d["justice number order"]);
 
-  // merge multi-term rows into one justice record
   const merged = Array.from(grouped, ([justiceNum, group]) => {
     const validStarts = group.map(d => d.start_dt).filter(d => d instanceof Date);
     const validEnds = group.map(d => d.end_dt).filter(d => d instanceof Date);
-    const tenureParts = group.map(d => d.tenure_years).filter(v => Number.isFinite(v) && v >= 0);
+    const tenureParts = group
+      .map(d => d.tenure_years)
+      .filter(v => Number.isFinite(v) && v >= 0);
 
     const earliestStart = validStarts.length ? d3.min(validStarts) : null;
     const latestEnd = validEnds.length ? d3.max(validEnds) : null;
     const totalTenure = tenureParts.length ? d3.sum(tenureParts) : null;
 
-    // choose a representative row to carry name / metadata
-    // earliest row is usually safest
     const base = group.slice().sort((a, b) => {
       const aT = a.start_dt instanceof Date ? a.start_dt.getTime() : Infinity;
       const bT = b.start_dt instanceof Date ? b.start_dt.getTime() : Infinity;
       return aT - bT;
     })[0];
 
-    // current if any row is current
     const isCurrent = group.some(d => d.isCurrent);
 
-    // for end reason, use the latest non-empty one unless current
     let endReason = "";
     if (!isCurrent) {
       const latestEndedRow = group
         .filter(d => d.end_dt instanceof Date)
         .sort((a, b) => b.end_dt - a.end_dt)[0];
 
-      endReason = latestEndedRow ? String(latestEndedRow["end reason"] ?? "").trim() : "";
+      endReason = latestEndedRow
+        ? String(latestEndedRow["end reason"] ?? "").trim()
+        : "";
     }
 
     return {
@@ -373,41 +368,6 @@ function deriveJustices(rows) {
   );
 }
 
-function withSyntheticAlitoRetirement(justices) {
-  const currentYear = new Date().getFullYear();
-  const syntheticEnd = new Date(currentYear, 11, 31);
-  const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000;
-
-  const updated = justices.map(d => {
-    const name = String(d["first last"] ?? "").trim();
-    const numberOrder = d["justice number order"]
-    if (numberOrder == 110) {
-      const tenure_years =
-        d.start_dt instanceof Date
-          ? (syntheticEnd - d.start_dt) / MS_PER_YEAR
-          : d.tenure_years;
-
-      return {
-        ...d,
-        end_dt: syntheticEnd,
-        end: `12/31/${currentYear}`,
-        isCurrent: false,
-        tenure_years,
-        "end reason": "Synthetic retirement for comparison"
-      };
-    }
-
-    return d;
-  });
-
-  console.log(
-    "synthetic Alito row:",
-    updated.find(d => String(d["first last"] ?? "").trim() === "Samuel Alito")
-  );
-
-  return updated;
-}
-
 /* =========================
    KAPLAN-MEIER
 ========================= */
@@ -415,14 +375,13 @@ function computeKM(justices, {
   timeKey = "tenure_years",
   eventFn = d => !d.isCurrent
 } = {}) {
-
   const rows = justices
     .map(d => ({
       t: Number(d?.[timeKey]),
       event: !!eventFn(d)
     }))
     .filter(d => Number.isFinite(d.t) && d.t >= 0)
-    .sort((a,b) => a.t - b.t);
+    .sort((a, b) => a.t - b.t);
 
   if (!rows.length) return [];
 
@@ -430,7 +389,7 @@ function computeKM(justices, {
   let survival = 1;
 
   const byTime = d3.group(rows, d => d.t);
-  const times = Array.from(byTime.keys()).sort((a,b) => a - b);
+  const times = Array.from(byTime.keys()).sort((a, b) => a - b);
 
   const curve = [{ t: 0, s: 1 }];
 
@@ -464,22 +423,21 @@ function medianSurvivalFromKM(curve) {
 }
 
 /* =========================
-   SINGLE BREAK BUILDER
+   BREAK BUILDER
 ========================= */
 function buildBeforeAfterForBreak(justices, breakYear, {
   minGroupSize = MIN_GROUP_SIZE
 } = {}) {
-
   const valid = justices.filter(d =>
     d.start_dt instanceof Date &&
     !d.isCurrent
   );
 
   const before = valid.filter(d => d.start_dt.getFullYear() < breakYear);
-  const after  = valid.filter(d => d.start_dt.getFullYear() > breakYear);
+  const after = valid.filter(d => d.start_dt.getFullYear() >= breakYear);
 
   const beforeCurve = computeKM(before);
-  const afterCurve  = computeKM(after);
+  const afterCurve = computeKM(after);
 
   if (
     before.length < minGroupSize ||
@@ -490,22 +448,49 @@ function buildBeforeAfterForBreak(justices, breakYear, {
 
   return {
     breakYear,
-    before: { label: `< ${breakYear}`, n: before.length, curve: beforeCurve },
-    after:  { label: `≥ ${breakYear}`, n: after.length,  curve: afterCurve }
+    before: {
+      label: `< ${breakYear}`,
+      n: before.length,
+      curve: beforeCurve
+    },
+    after: {
+      label: `≥ ${breakYear}`,
+      n: after.length,
+      curve: afterCurve
+    }
   };
+}
+
+function getValidBreakYears(justices, {
+  minGroupSize = MIN_GROUP_SIZE
+} = {}) {
+  const years = Array.from(new Set(
+    justices
+      .filter(d => d.start_dt instanceof Date)
+      .map(d => d.start_dt.getFullYear())
+  )).sort((a, b) => a - b);
+
+  if (!years.length) return [];
+
+  const maxYear = years[years.length - 1];
+  const allBreakYears = [...years, maxYear + 1];
+
+  if (minGroupSize === 0) return allBreakYears;
+
+  return allBreakYears.filter(y =>
+    !!buildBeforeAfterForBreak(justices, y, { minGroupSize })
+  );
 }
 /* =========================
    DRAW
 ========================= */
 function drawBeforeAfterBreakSingle(series, {
   selector = "#survivalSliderChart",
-  comparisonSeries = null,
   width = 860,
   height = 360,
   margin = { top: 18, right: 20, bottom: 36, left: 46 },
   maxYears = 40
 } = {}) {
-
   const root = d3.select(selector);
   root.selectAll("*").remove();
 
@@ -559,47 +544,39 @@ function drawBeforeAfterBreakSingle(series, {
     .attr("text-anchor", "middle")
     .text("Survival probability");
 
-  // thinner comparison lines first, so they sit behind
-  if (comparisonSeries) {
+  if (series.before.curve.length) {
     g.append("path")
-      .datum(comparisonSeries.before.curve)
+      .datum(series.before.curve)
       .attr("fill", "none")
       .attr("stroke", "#bdbdbd")
-      .attr("stroke-width", 1)
-      .attr("stroke-dasharray", "3,2")
-      .attr("opacity", 0.9)
-      .attr("d", line);
-
-    g.append("path")
-      .datum(comparisonSeries.after.curve)
-      .attr("fill", "none")
-      .attr("stroke", "#000")
-      .attr("stroke-width", 1)
-      .attr("stroke-dasharray", "3,2")
-      .attr("opacity", 0.9)
+      .attr("stroke-width", 2)
       .attr("d", line);
   }
 
-  // main lines
-  g.append("path")
-    .datum(series.before.curve)
-    .attr("fill", "none")
-    .attr("stroke", "#bdbdbd")
-    .attr("stroke-width", 2)
-    .attr("d", line);
-
-  g.append("path")
-    .datum(series.after.curve)
-    .attr("fill", "none")
-    .attr("stroke", "#000")
-    .attr("stroke-width", 2)
-    .attr("d", line);
+  if (series.after.curve.length) {
+    g.append("path")
+      .datum(series.after.curve)
+      .attr("fill", "none")
+      .attr("stroke", "#000")
+      .attr("stroke-width", 2)
+      .attr("d", line);
+  }
 
   const tooltip = d3.select("#tooltip");
 
   const pointRows = [
-    ...series.before.curve.map(d => ({ ...d, group: "before", label: series.before.label, n: series.before.n })),
-    ...series.after.curve.map(d => ({ ...d, group: "after", label: series.after.label, n: series.after.n }))
+    ...series.before.curve.map(d => ({
+      ...d,
+      group: "before",
+      label: series.before.label,
+      n: series.before.n
+    })),
+    ...series.after.curve.map(d => ({
+      ...d,
+      group: "after",
+      label: series.after.label,
+      n: series.after.n
+    }))
   ];
 
   g.selectAll(".km-dot")
@@ -611,7 +588,7 @@ function drawBeforeAfterBreakSingle(series, {
     .attr("r", 3)
     .attr("fill", d => d.group === "before" ? "#bdbdbd" : "#000")
     .attr("opacity", 0.85)
-    .on("mouseenter", function(event, d){
+    .on("mouseenter", function(event, d) {
       tooltip
         .style("opacity", 1)
         .html(`
@@ -621,12 +598,12 @@ function drawBeforeAfterBreakSingle(series, {
           survival = ${d3.format(".3f")(d.s)}
         `);
     })
-    .on("mousemove", function(event){
+    .on("mousemove", function(event) {
       tooltip
         .style("left", (event.clientX + 10) + "px")
         .style("top", (event.clientY + 10) + "px");
     })
-    .on("mouseleave", function(){
+    .on("mouseleave", function() {
       tooltip.style("opacity", 0);
     });
 
@@ -636,8 +613,8 @@ function drawBeforeAfterBreakSingle(series, {
 
   leg.append("line")
     .attr("class", "legend-line")
-    .attr("x1", -80)
-    .attr("x2", -62)
+    .attr("x1", -100)
+    .attr("x2", -90)
     .attr("y1", 8)
     .attr("y2", 8)
     .attr("stroke", "#bdbdbd");
@@ -650,8 +627,8 @@ function drawBeforeAfterBreakSingle(series, {
 
   leg.append("line")
     .attr("class", "legend-line")
-    .attr("x1", -80)
-    .attr("x2", -62)
+    .attr("x1", -100)
+    .attr("x2", -90)
     .attr("y1", 24)
     .attr("y2", 24)
     .attr("stroke", "#000");
@@ -661,60 +638,15 @@ function drawBeforeAfterBreakSingle(series, {
     .attr("y", 28)
     .attr("text-anchor", "end")
     .text(`${series.after.label} (n=${series.after.n})`);
-
-  if (comparisonSeries) {
-    leg.append("line")
-      .attr("x1", -80)
-      .attr("x2", -62)
-      .attr("y1", 42)
-      .attr("y2", 42)
-      .attr("stroke", "#bdbdbd")
-      .attr("stroke-width", 1)
-      .attr("stroke-dasharray", "3,2");
-
-    leg.append("text")
-      .attr("x", 0)
-      .attr("y", 46)
-      .attr("text-anchor", "end")
-      .text("with Alito retiring this year");
-
-    leg.append("line")
-      .attr("x1", -80)
-      .attr("x2", -62)
-      .attr("y1", 58)
-      .attr("y2", 58)
-      .attr("stroke", "#000")
-      .attr("stroke-width", 1)
-      .attr("stroke-dasharray", "3,2");
-  }
 }
 
 /* =========================
    UI
 ========================= */
-function getValidBreakYears(justices, {
-  minGroupSize = MIN_GROUP_SIZE
-} = {}) {
-
-  const years = Array.from(new Set(
-    justices
-      .filter(d => d.start_dt instanceof Date)
-      .map(d => d.start_dt.getFullYear())
-  )).sort((a,b) => a-b);
-
-  // keep all years if minGroupSize = 0
-  if (minGroupSize === 0) {
-    return years;
-  }
-
-  return years.filter(y =>
-    !!buildBeforeAfterForBreak(justices, y, { minGroupSize })
-  );
-}
 function initBreakSlider(justices, {
   selector = "#survivalSliderChart",
   minGroupSize = MIN_GROUP_SIZE,
-  maxYears = 40
+  maxYears = MAX_YEARS
 } = {}) {
   const validBreakYears = getValidBreakYears(justices, { minGroupSize });
 
@@ -727,9 +659,6 @@ function initBreakSlider(justices, {
   const minLab = document.getElementById("minYearLabel");
   const maxLab = document.getElementById("maxYearLabel");
   const readout = document.getElementById("breakYearReadout");
-  const beforeMeta = document.getElementById("beforeMeta");
-  const afterMeta = document.getElementById("afterMeta");
-  const medianMeta = document.getElementById("medianMeta");
 
   slider.min = 0;
   slider.max = validBreakYears.length - 1;
@@ -742,19 +671,27 @@ function initBreakSlider(justices, {
   function update() {
     const idx = +slider.value;
     const breakYear = validBreakYears[idx];
-const series = buildBeforeAfterForBreak(justices, breakYear, { minGroupSize });
-
-const alitoSeries = buildBeforeAfterForBreak(
-  withSyntheticAlitoRetirement(justices),
-  breakYear,
-  { minGroupSize }
-);
-    readout.textContent = breakYear;
+    const series = buildBeforeAfterForBreak(justices, breakYear, { minGroupSize });
+if (series) {
+  
+  console.log(
+    "split total:",
+    series.before.n + series.after.n,
+    "before:",
+    series.before.n,
+    "after:",
+    series.after.n
+  );
+}    readout.textContent = breakYear;
 
     if (!series) {
-      beforeMeta.textContent = "Before: —";
-      afterMeta.textContent = "After: —";
-      medianMeta.textContent = "Medians: —";
+      document.getElementById("beforeLabel").textContent = `< ${breakYear}`;
+      document.getElementById("afterLabel").textContent = `≥ ${breakYear}`;
+      document.getElementById("beforeN").textContent = "—";
+      document.getElementById("afterN").textContent = "—";
+      document.getElementById("beforeMedian").textContent = "—";
+      document.getElementById("afterMedian").textContent = "—";
+
       d3.select(selector).html("No valid split for this break year.");
       return;
     }
@@ -763,24 +700,19 @@ const alitoSeries = buildBeforeAfterForBreak(
     const medAfter = medianSurvivalFromKM(series.after.curve);
     const fmt = d3.format(".1f");
 
-   document.getElementById("beforeLabel").textContent = `< ${breakYear}`;
-document.getElementById("afterLabel").textContent = `≥ ${breakYear}`;
+    document.getElementById("beforeLabel").textContent = `< ${breakYear}`;
+    document.getElementById("afterLabel").textContent = `≥ ${breakYear}`;
+    document.getElementById("beforeN").textContent = series.before.n;
+    document.getElementById("afterN").textContent = series.after.n;
+    document.getElementById("beforeMedian").textContent = medBefore != null ? fmt(medBefore) : "—";
+    document.getElementById("afterMedian").textContent = medAfter != null ? fmt(medAfter) : "—";
 
-document.getElementById("beforeN").textContent = series.before.n;
-document.getElementById("afterN").textContent = series.after.n;
-
-document.getElementById("beforeMedian").textContent =
-  medBefore != null ? fmt(medBefore) : "—";
-
-document.getElementById("afterMedian").textContent =
-  medAfter != null ? fmt(medAfter) : "—";
     drawBeforeAfterBreakSingle(series, {
-  selector,
-  comparisonSeries: alitoSeries,
-  width: CHART_WIDTH,
-  height: CHART_HEIGHT,
-  maxYears
-});
+      selector,
+      width: CHART_WIDTH,
+      height: CHART_HEIGHT,
+      maxYears
+    });
   }
 
   slider.addEventListener("input", update);
@@ -792,7 +724,16 @@ document.getElementById("afterMedian").textContent =
 ========================= */
 d3.csv(CSV_PATH).then(rows => {
   const justices = deriveJustices(rows);
-  console.log(justices)
+console.log(justices)
+console.log(
+  "derived non-current:",
+  justices.filter(d => !d.isCurrent).length
+);
+
+console.log(
+  "derived current:",
+  justices.filter(d => d.isCurrent).length
+);
   initBreakSlider(justices, {
     selector: "#survivalSliderChart",
     minGroupSize: MIN_GROUP_SIZE,
