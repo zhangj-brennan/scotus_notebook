@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Outside SCOTUS Data Viz — Condensed Service Bar Chart</title>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background: #fff;
+    color: #000;
+  }
+
+  .wrap {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px 24px 40px;
+  }
+
+  h1 {
+    margin: 0 0 8px;
+    font-size: 28px;
+    line-height: 1.1;
+  }
+
+  .subtitle {
+    margin: 0 0 18px;
+    color: #000;
+    font-size: 14px;
+    line-height: 1.4;
+    max-width: 1000px;
+  }
+
+  .topbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 16px;
+    margin-bottom: 18px;
+    padding: 14px 16px;
+    border: 1px solid #ddd;
+    border-radius: 0px;
+    background: #fafafa;
+  }
+
+  .control {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 180px;
+  }
+
+  .control label {
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  select {
+    padding: 8px 10px;
+    border: 1px solid #bbb;
+    border-radius: 0px;
+    background: #fff;
+    font-size: 14px;
+  }
+
+  .meta {
+    font-size: 12px;
+    color: #000;
+    line-height: 1.4;
+  }
+
+  svg {
+    width: 100%;
+    height: auto;
+    display: block;
+    overflow: visible;
+  }
+
+  .axis path,
+  .axis line {
+    stroke: #bbb;
+  }
+
+  .grid line {
+    stroke: #ececec;
+  }
+
+  .grid path {
+    display: none;
+  }
+
+  .row-bar {
+  fill: #000;
+}
+
+.row-bar.current {
+  fill: #d7191c;
+}
+
+  .row-label {
+    font-size: 11px;
+    fill: #000;
+    dominant-baseline: middle;
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  .row-label.visible {
+    opacity: 1;
+  }
+
+  .row-value {
+    font-size: 11px;
+    fill: #000;
+    dominant-baseline: middle;
+    text-anchor: start;
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  .row-value.visible {
+    opacity: 1;
+  }
+/* 
+  .hover-band {
+    fill: #000;
+    opacity: 0.04;
+    pointer-events: none;
+  } */
+
+  .empty-message {
+    font-size: 14px;
+    fill: #000;
+  }
+
+  .tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: rgba(0,0,0,0.92);
+    color: #fff;
+    padding: 8px 10px;
+    border-radius0px;
+    font-size: 12px;
+    line-height: 1.35;
+    opacity: 0;
+    transition: opacity 0.12s ease;
+    white-space: nowrap;
+    z-index: 20;
+  }
+
+  @media (max-width: 900px) {
+    .topbar {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .control {
+      min-width: 0;
+    }
+  }
+  .button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sort-btn {
+  appearance: none;
+  border: 1px solid #111;
+  background: #fff;
+  color: #111;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.sort-btn.active {
+  background: #111;
+  color: #fff;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Years in Service — Condensed Ranked Bar Chart</h1>
+  <p class="subtitle">
+    Each row is one person. The chart is intentionally compressed so the full structure can fit on one page. Hover to magnify a local region and reveal labels.
+  </p>
+
+  <div class="topbar">
+   <div class="control">
+  <label>Sort order</label>
+  <div class="button-row" id="sortButtons">
+    <button class="sort-btn active" data-sort="days_desc">Longest to shortest</button>
+    <button class="sort-btn" data-sort="days_asc">Shortest to longest</button>
+    <button class="sort-btn" data-sort="start_asc">Start year ascending</button>
+    <button class="sort-btn" data-sort="start_desc">Start year descending</button>
+  </div>
+</div>
+
+    <div class="meta" id="meta"></div>
+  </div>
+
+  <svg id="chart" viewBox="0 0 1400 1200" preserveAspectRatio="xMinYMin meet"></svg>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+/* =========================
+   CONFIG
+========================= */
+
+const CSV_PATH = "data.csv";
+
+const COL_NAME = "name";
+const COL_DAYS = "days";
+const COL_START = "start date";
+const COL_CURRENT = "isCurrent";
+
+const BASE_ROW_H = 4;
+const MAX_ROW_H = 40;
+const MAG_RADIUS = 3;
+const TOP_PADDING = 18;
+const BOTTOM_PADDING = 30;
+const LEFT_MARGIN = 180;
+const RIGHT_MARGIN = 110;
+const TOP_MARGIN = 40;
+
+const width = 1000;
+
+/* =========================
+   HELPERS
+========================= */
+function updateSortButtons() {
+  document.querySelectorAll(".sort-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.sort === currentSort);
+  });
+}
+
+function parseDateFlexible(value) {
+  if (!value) return null;
+  const v = String(value).trim();
+  if (!v) return null;
+
+  const nativeDate = new Date(v);
+  if (!isNaN(nativeDate)) return nativeDate;
+
+  return (
+    d3.timeParse("%Y-%m-%d")(v) ||
+    d3.timeParse("%m/%d/%Y")(v) ||
+    d3.timeParse("%m/%d/%y")(v) ||
+    d3.timeParse("%Y")(v) ||
+    null
+  );
+}
+
+function toNumber(value) {
+  if (value == null) return null;
+  const cleaned = String(value).replace(/,/g, "").trim();
+  if (cleaned === "") return null;
+  const n = +cleaned;
+  return isNaN(n) ? null : n;
+}
+
+function isCurrent(value) {
+  const v = String(value ?? "").trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes" || v === "y" || v === "current" || v === "in office";
+}
+
+function formatDays(days) {
+  return d3.format(",.0f")(days);
+}
+
+function formatYears(days) {
+  return d3.format(".1f")(days / 365.25);
+}
+
+// function showTooltip(event, html) {
+//   d3.select("#tooltip")
+//     .style("opacity", 1)
+//     .html(html)
+//     .style("left", (event.pageX + 12) + "px")
+//     .style("top", (event.pageY - 28) + "px");
+// }
+
+// function hideTooltip() {
+//   d3.select("#tooltip").style("opacity", 0);
+// }
+
+function sortData(data, mode) {
+  const arr = [...data];
+
+  if (mode === "days_desc") {
+    arr.sort((a, b) => d3.descending(a.days, b.days) || d3.ascending(a.startYear, b.startYear));
+  } else if (mode === "days_asc") {
+    arr.sort((a, b) => d3.ascending(a.days, b.days) || d3.ascending(a.startYear, b.startYear));
+  } else if (mode === "start_asc") {
+    arr.sort((a, b) => d3.ascending(a.startYear, b.startYear) || d3.descending(a.days, b.days));
+  } else if (mode === "start_desc") {
+    arr.sort((a, b) => d3.descending(a.startYear, b.startYear) || d3.descending(a.days, b.days));
+  }
+
+  return arr.map((d, i) => ({ ...d, orderIndex: i }));
+}
+
+function computeLayout(data, hoverIndex) {
+  const out = [];
+  let cursor = TOP_PADDING;
+
+  for (let i = 0; i < data.length; i++) {
+    let h = BASE_ROW_H;
+    let boost = 0;
+
+    if (hoverIndex != null) {
+      const dist = Math.abs(i - hoverIndex);
+
+      if (dist <= MAG_RADIUS) {
+        const sigma = MAG_RADIUS * 0.42;
+        const g = Math.exp(-(dist * dist) / (2 * sigma * sigma));
+        boost = Math.pow(g, 0.3);
+
+        h = BASE_ROW_H + (MAX_ROW_H - BASE_ROW_H) * boost;
+      }
+    }
+
+    out.push({
+      ...data[i],
+      layoutIndex: i,
+      rowHeight: h,
+      y: cursor,
+      cy: cursor + h / 2,
+      boost   // 👈 store it
+    });
+
+    cursor += h;
+  }
+
+  return {
+    rows: out,
+    totalHeight: cursor + BOTTOM_PADDING
+  };
+}
+
+function labelVisible(d, hoverIndex) {
+  if (hoverIndex == null) return false;
+  return Math.abs(d.layoutIndex - hoverIndex) <= MAG_RADIUS;
+}
+
+/* =========================
+   SETUP
+========================= */
+
+const svg = d3.select("#chart");
+const tooltip = d3.select("#tooltip");
+let currentSort = "days_desc";
+const meta = document.getElementById("meta");
+
+let rawData = [];
+let hoverIndex = null;
+
+function draw() {
+const sortMode = currentSort;
+  const sorted = sortData(rawData, sortMode);
+  const layout = computeLayout(sorted, hoverIndex);
+  const rows = layout.rows;
+
+  const height = Math.max(700, TOP_MARGIN + layout.totalHeight);
+  svg.attr("viewBox", `0 0 ${width} ${height}`);
+
+  svg.selectAll("*").remove();
+
+  const margin = {
+    top: TOP_MARGIN,
+    right: RIGHT_MARGIN,
+    bottom: 45,
+    left: LEFT_MARGIN
+  };
+
+  const innerWidth = width - margin.left - margin.right;
+  const innerHeight = height - margin.top - margin.bottom;
+
+  const chartG = svg.append("g")
+    .attr("transform", `translate(${margin.left},${margin.top})`);
+
+  const gridG = chartG.append("g").attr("class", "grid");
+  const barsG = chartG.append("g").attr("class", "bars-layer");
+  const labelsG = chartG.append("g").attr("class", "labels-layer");
+  const xAxisG = chartG.append("g")
+    .attr("class", "axis")
+    .attr("transform", `translate(0,${innerHeight})`);
+
+  if (!rows.length) {
+    chartG.append("text")
+      .attr("class", "empty-message")
+      .attr("x", innerWidth / 2)
+      .attr("y", innerHeight / 2)
+      .attr("text-anchor", "middle")
+      .text("No valid data to display.");
+    return;
+  }
+
+  const maxDays = d3.max(rows, d => d.days);
+
+  const x = d3.scaleLinear()
+    .domain([0, maxDays])
+    .range([0, innerWidth]);
+
+  const yMax = d3.max(rows, d => d.y + d.rowHeight);
+
+  const y = d3.scaleLinear()
+    .domain([0, yMax])
+    .range([0, yMax]);
+
+  const xGrid = d3.axisBottom(x)
+    .ticks(8)
+    .tickSize(-innerHeight)
+    .tickFormat("");
+
+  gridG
+    .attr("transform", `translate(0,${innerHeight})`)
+    .call(xGrid);
+
+  const xAxis = d3.axisBottom(x)
+    .ticks(8)
+    .tickFormat(d => d3.format(",")(d));
+
+  xAxisG.call(xAxis);
+
+  chartG.append("text")
+    .attr("x", 0)
+    .attr("y", -12)
+    .attr("font-size", 16)
+    .attr("font-weight", 700)
+    .text("Years in service by individual");
+
+  chartG.append("text")
+    .attr("x", innerWidth / 2)
+    .attr("y", innerHeight + 38)
+    .attr("text-anchor", "middle")
+    .attr("font-size", 13)
+    .text("Days in office");
+
+
+
+  const rowG = barsG.selectAll(".row")
+    .data(rows, d => d.name + "|" + d.startYear + "|" + d.days)
+    .join("g")
+    .attr("class", "row");
+
+  rowG.append("rect")
+ .attr("class", d => "row-bar" + (d.isCurrent ? " current" : ""))
+    .attr("x", 0)
+    .attr("y", d => d.y)
+    .attr("width", d => x(d.days))
+    .attr("height", d => Math.max(1.5, d.rowHeight - 0.8))
+    .on("mouseenter", function(event, d) {
+      hoverIndex = d.layoutIndex;
+      draw();
+    //   showTooltip(
+    //     event,
+    //     `<strong>${d.name || "Unknown"}</strong><br>` +
+    //     `Days in office: ${formatDays(d.days)}<br>` +
+    //     `Years in office: ${formatYears(d.days)}<br>` +
+    //     `Start year: ${d.startYear ?? "N/A"}<br>` +
+    //     `Current: ${d.isCurrent ? "Yes" : "No"}`
+    //   );
+    })
+    .on("mousemove", function(event, d) {
+    //   showTooltip(
+    //     event,
+    //     `<strong>${d.name || "Unknown"}</strong><br>` +
+    //     `Days in office: ${formatDays(d.days)}<br>` +
+    //     `Years in office: ${formatYears(d.days)}<br>` +
+    //     `Start year: ${d.startYear ?? "N/A"}<br>` +
+    //     `Current: ${d.isCurrent ? "Yes" : "No"}`
+    //   );
+    })
+    .on("mouseleave", function() {
+      hoverIndex = null;
+      draw();
+    //   hideTooltip();
+    });
+
+  labelsG.selectAll(".name-text")
+    .data(rows, d => d.name + "|" + d.startYear + "|" + d.days)
+    .join("text")
+    .attr("class", d => "row-label" + (labelVisible(d, hoverIndex) ? " visible" : ""))
+    .attr("x", d => -10)
+    .attr("y", d => d.cy)
+    .style("font-size", d => {
+    const min = 9;
+    const max = 20;
+    return `${min + (max - min) * d.boost}px`;
+    })
+    .attr("text-anchor", "end")
+    .text(d => d.name || "Unknown");
+
+  labelsG.selectAll(".value-text")
+    .data(rows, d => d.name + "|" + d.startYear + "|" + d.days)
+    .join("text")
+    .style("font-size", d => {
+    const min = 9;
+    const max = 20;
+    return `${min + (max - min) * d.boost}px`;
+    })
+    .attr("class", d => "row-value" + (labelVisible(d, hoverIndex) ? " visible" : ""))
+    .attr("x", d => Math.min(innerWidth - 4, x(d.days) + 6))
+    .attr("y", d => d.cy)
+    .text(d => `${formatYears(d.days)}y`);
+
+  meta.textContent =
+    `${rows.length} people · default view is compressed · hover to magnify local rows`;
+}
+
+/* =========================
+   LOAD
+========================= */
+
+d3.csv(CSV_PATH).then(data => {
+  rawData = data.map(d => {
+    const startDate = parseDateFlexible(d[COL_START]);
+    const days = toNumber(d[COL_DAYS]);
+
+    return {
+      name: d[COL_NAME],
+      days,
+      startDate,
+      startYear: startDate ? startDate.getFullYear() : null,
+      isCurrent: isCurrent(d[COL_CURRENT])
+    };
+  }).filter(d => d.days != null);
+
+  document.querySelectorAll(".sort-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    currentSort = btn.dataset.sort;
+    hoverIndex = null;
+    draw();
+  });
+});
+  draw();
+}).catch(err => {
+  console.error("Error loading CSV:", err);
+  svg.selectAll("*").remove();
+  svg.append("text")
+    .attr("x", 700)
+    .attr("y", 200)
+    .attr("text-anchor", "middle")
+    .attr("fill", "#000")
+    .text("Could not load CSV. Check CSV_PATH and column names.");
+});
+</script>
+</body>
+</html>
