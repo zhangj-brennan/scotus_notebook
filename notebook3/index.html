@@ -1,0 +1,971 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>SCOTUS notebook 3</title>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background: #fff;
+    color: #000;
+  }
+
+  .wrap {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 20px 24px 40px;
+  }
+
+  h1 {
+    margin: 0 0 8px;
+    font-size: 28px;
+    line-height: 1.1;
+  }
+
+  .subtitle {
+    margin: 0 0 18px;
+    color: #000;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 18px;
+    margin-bottom: 18px;
+    padding: 16px;
+    border: 1px solid #000;
+    border-radius: 0px;
+    background: #fff;
+  }
+
+  .control {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .control label {
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .control .value {
+    font-weight: 400;
+    color: #000;
+    margin-left: 8px;
+  }
+
+  input[type="range"],
+  input[type="number"] {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  input[type="number"] {
+    padding: 8px 10px;
+    border: 1px solid #000;
+    border-radius: 0px;
+    font-size: 14px;
+    background: #fff;
+  }
+
+  .note {
+    font-size: 12px;
+    color: #000;
+    line-height: 1.4;
+  }
+
+  .button-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+
+  .filter-btn {
+    appearance: none;
+    border: 1px solid #000;
+    background: #fff;
+    color: #000;
+    padding: 8px 12px;
+    border-radius: 0px;
+    font-size: 16px;
+    line-height: 1.2;
+    cursor: pointer;
+  }
+
+  .filter-btn.active {
+    background: #000;
+    color: #fff;
+  }
+
+  svg {
+    width: 100%;
+    height: auto;
+    display: block;
+    overflow: visible;
+  }
+
+  .axis path,
+  .axis line {
+    stroke: #bbb;
+  }
+
+  .grid line {
+    stroke: #e5e5e5;
+  }
+
+  .grid path {
+    display: none;
+  }
+
+  .bar-core {
+    fill: #111;
+    opacity: 0.14;
+  }
+
+  .bar-overlap {
+    fill: #111;
+    opacity: 0.07;
+  }
+
+  .bar-core.active,
+  .bar-overlap.active {
+    opacity: 0.24;
+  }
+
+  .person-dot {
+    fill: #111;
+    opacity: 0.42;
+    transition: opacity 120ms ease, r 120ms ease;
+  }
+
+  .person-dot.dimmed {
+    opacity: 0.12;
+  }
+
+  .person-dot.highlighted {
+    opacity: 0.95;
+  }
+
+  .name-label {
+    font-size: 14px;
+    fill: #111;
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  .name-label.visible {
+    opacity: 1;
+  }
+
+  .empty-message {
+    font-size: 14px;
+    fill: #777;
+  }
+
+  .tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: rgba(0,0,0,0.7);
+    color: #fff;
+    padding: 8px 10px;
+    border-radius: 0px;
+    font-size: 12px;
+    line-height: 1.35;
+    opacity: 0;
+    transition: opacity 0.12s ease;
+    white-space: nowrap;
+    z-index: 20;
+  }
+
+  @media (max-width: 980px) {
+    .controls {
+      grid-template-columns: 1fr;
+    }
+  }
+  .bar-value-label {
+  font-size: 24px;
+  fill: #000;
+  text-anchor: middle;
+  pointer-events: none;
+}
+/* Current (in office) people */
+.person-dot.current {
+  fill: #d7191c;   /* red */
+  opacity: 0.55;
+}
+
+/* When highlighted */
+.person-dot.current.highlighted {
+  opacity: 0.95;
+}
+
+/* When dimmed */
+.person-dot.current.dimmed {
+  opacity: 0.12;
+}
+/* =========================
+   SLIDER STYLE (BLACK MINIMAL)
+========================= */
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: #000;
+  border-radius: 2px;
+  outline: none;
+  margin: 6px 0;
+}
+
+/* WEBKIT (Chrome, Safari) */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 20px;
+  background: #000;
+  /* border-radius: 50%; */
+  cursor: pointer;
+  margin-top: -0px; /* centers thumb on track */
+}
+
+/* Firefox */
+input[type="range"]::-moz-range-track {
+  background: #000;
+  height: 4px;
+  border-radius: 2px;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: #000;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* Optional: remove blue focus glow */
+input[type="range"]:focus {
+  outline: none;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Median Time in Office</h1>
+  <p class="subtitle">
+  By starting date<br>
+  </p>
+
+<div class="button-row">
+
+  <button class="filter-btn active" data-mode="show_all">
+    Show all (including current)
+  </button>
+
+  <button class="filter-btn" data-mode="exclude_all_current">
+    Exclude all in office
+  </button>
+
+  <button class="filter-btn" data-mode="keep_alito">
+    Keep only Alito among current
+  </button>
+
+  <button class="filter-btn" data-mode="keep_alito_thomas">
+    Keep Alito + Thomas among current
+  </button>
+
+</div>
+
+  <div class="controls">
+    <div class="control">
+      <label for="windowSlider">
+        Period length
+        <span class="value" id="windowValue">25 years</span>
+      </label>
+      <input id="windowSlider" type="range" min="10" max="50" step="1" value="25" />
+      <div class="note">
+        Total width of each rolling period.
+      </div>
+    </div>
+
+    <div class="control">
+      <label for="overlapSlider">
+        Overlap
+        <span class="value" id="overlapValue">0 years</span>
+      </label>
+      <input id="overlapSlider" type="range" min="0" max="25" step="1" value="0" />
+      <div class="note">
+        Shared years between adjacent periods.
+      </div>
+    </div>
+
+    <div class="control">
+      <label for="startYearInput">
+        Starting year
+      </label>
+      <input id="startYearInput" type="number" step="1" placeholder="auto" />
+      <div class="note">
+        First year used to construct rolling periods.
+      </div>
+    </div>
+  </div>
+
+  <svg id="chart" viewBox="0 0 1280 720" preserveAspectRatio="xMinYMin meet"></svg>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+/* =========================
+   CONFIG
+========================= */
+
+const CSV_PATH = "data.csv";
+
+// change these if your CSV headers differ
+const COL_NAME = "name";
+const COL_DAYS = "days";
+const COL_START = "start date";
+const COL_CURRENT = "isCurrent";
+
+const FILTER_MODES = {
+  SHOW_ALL: "show_all",
+  EXCLUDE_ALL_CURRENT: "exclude_all_current",
+  KEEP_ALITO: "keep_alito",
+  KEEP_ALITO_THOMAS: "keep_alito_thomas"
+};
+
+let currentFilterMode = FILTER_MODES.SHOW_ALL;
+
+// let currentFilterMode = FILTER_MODES.EXCLUDE_ALL_CURRENT;
+
+/* =========================
+   SETUP
+========================= */
+
+const svg = d3.select("#chart");
+const tooltip = d3.select("#tooltip");
+
+const width = 1280;
+const height = 720;
+const margin = { top: 35, right: 40, bottom: 70, left: 95 };
+const innerWidth = width - margin.left - margin.right;
+const innerHeight = height - margin.top - margin.bottom;
+
+const g = svg.append("g")
+  .attr("transform", `translate(${margin.left},${margin.top})`);
+
+const gridG = g.append("g").attr("class", "grid");
+const barsG = g.append("g").attr("class", "bars-layer");
+const barValueLabelsG = g.append("g").attr("class", "bar-value-labels-layer");
+const dotsG = g.append("g").attr("class", "dots-layer");
+const labelsG = g.append("g").attr("class", "labels-layer");
+const xAxisG = g.append("g")
+  .attr("class", "axis")
+  .attr("transform", `translate(0,${innerHeight})`);
+const yAxisG = g.append("g").attr("class", "axis");
+const emptyG = g.append("g");
+
+g.append("text")
+  .attr("x", 0)
+  .attr("y", -12)
+  .attr("font-size", 16)
+  .attr("font-weight", 700)
+  .text("Adjustable periods based on start year");
+
+g.append("text")
+  .attr("transform", "rotate(-90)")
+  .attr("x", -innerHeight / 2)
+  .attr("y", -65)
+  .attr("text-anchor", "middle")
+  .attr("font-size", 14)
+  .text("Days in office");
+
+/* =========================
+   HELPERS
+========================= */
+
+function parseDateFlexible(value) {
+  if (!value) return null;
+
+  const v = String(value).trim();
+  if (!v) return null;
+
+  const nativeDate = new Date(v);
+  if (!isNaN(nativeDate)) return nativeDate;
+
+  const parsed =
+    d3.timeParse("%Y-%m-%d")(v) ||
+    d3.timeParse("%m/%d/%Y")(v) ||
+    d3.timeParse("%m/%d/%y")(v) ||
+    d3.timeParse("%Y")(v);
+
+  return parsed || null;
+}
+
+function toNumber(value) {
+  if (value == null) return null;
+  const cleaned = String(value).replace(/,/g, "").trim();
+  if (cleaned === "") return null;
+  const n = +cleaned;
+  return isNaN(n) ? null : n;
+}
+
+function median(values) {
+  const clean = values.filter(v => v != null && !isNaN(v)).sort((a, b) => a - b);
+  if (!clean.length) return null;
+  return d3.median(clean);
+}
+
+function formatDays(days) {
+  if (days == null) return "N/A";
+  return d3.format(",.0f")(days);
+}
+
+function formatYears(days) {
+  if (days == null) return "N/A";
+  return d3.format(".1f")(days / 365.25);
+}
+
+function formatYearLabel(year) {
+  return d3.format("d")(year);
+}
+
+function pointKey(d) {
+  return `${d.name || ""}|${d.startYear}|${d.days}`;
+}
+
+function labelKey(d) {
+  return `${pointKey(d)}|label`;
+}
+
+function normalizeName(name) {
+  return String(name || "").toLowerCase();
+}
+
+function isCurrentJustice(value) {
+  const v = String(value ?? "").trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes" || v === "y" || v === "current" || v === "in office";
+}
+
+function matchesAlito(name) {
+  return normalizeName(name).includes("samuel alito");
+}
+
+function matchesThomas(name) {
+  return normalizeName(name).includes("thomas");
+}
+
+function filterDataByMode(data, mode) {
+
+  return data.filter(d => {
+
+    const current = d.inOfficeBool;
+
+    if (mode === FILTER_MODES.SHOW_ALL) {
+      return true;
+    }
+
+    if (!current) return true;
+
+    if (mode === FILTER_MODES.EXCLUDE_ALL_CURRENT) {
+      return false;
+    }
+
+    if (mode === FILTER_MODES.KEEP_ALITO) {
+      return matchesAlito(d.name);
+    }
+
+    if (mode === FILTER_MODES.KEEP_ALITO_THOMAS) {
+      return matchesAlito(d.name) || matchesThomas(d.name);
+    }
+
+    return true;
+
+  });
+
+}
+
+function getMedianRepresentative(people, medianDays) {
+  if (!people.length || medianDays == null) return null;
+
+  const sorted = [...people].sort((a, b) => {
+    const diff = Math.abs(a.days - medianDays) - Math.abs(b.days - medianDays);
+    if (diff !== 0) return diff;
+    if (a.days !== b.days) return a.days - b.days;
+    return (a.startYear || 0) - (b.startYear || 0);
+  });
+
+  return sorted[0] || null;
+}
+
+function buildPeriods(data, windowYears, overlapYears, startOverride) {
+  const stepYears = Math.max(1, windowYears - overlapYears);
+
+  const years = data.map(d => d.startYear).filter(y => y != null);
+  const datasetMinYear = d3.min(years);
+  const maxYear = d3.max(years);
+
+  const minYear = startOverride ?? datasetMinYear;
+
+  if (minYear == null || maxYear == null) return [];
+
+  const periods = [];
+
+  for (let start = minYear; start <= maxYear; start += stepYears) {
+    const end = start + windowYears - 1;
+    const coreEnd = end - overlapYears;
+
+    const inPeriod = data.filter(d => d.startYear >= start && d.startYear <= end);
+    const med = median(inPeriod.map(d => d.days));
+
+    if (inPeriod.length > 0 && med != null) {
+    //   const representative = getMedianRepresentative(inPeriod, med);
+
+      periods.push({
+        periodStart: start,
+        periodEnd: end,
+        coreEnd: Math.max(start, coreEnd),
+        label: `${start}–${end}`,
+        medianDays: med,
+        count: inPeriod.length,
+        people: inPeriod,
+        // medianPerson: representative
+      });
+    }
+  }
+
+  return periods;
+}
+
+function showTooltip(event, html) {
+  tooltip
+    .style("opacity", 1)
+    .html(html)
+    .style("left", (event.pageX + 12) + "px")
+    .style("top", (event.pageY - 28) + "px");
+}
+
+function hideTooltip() {
+  tooltip.style("opacity", 0);
+}
+
+function setDotHighlight(periodData) {
+  const keys = new Set(periodData.people.map(pointKey));
+
+  dotsG.selectAll(".person-dot")
+    .classed("dimmed", d => !keys.has(pointKey(d)))
+    .classed("highlighted", d => keys.has(pointKey(d)))
+    .attr("r", d => keys.has(pointKey(d)) ? 4.5 : 3);
+
+  labelsG.selectAll(".name-label")
+    .classed("visible", d => keys.has(pointKey(d)))
+    .style("display", d => keys.has(pointKey(d)) ? null : "none");
+
+  barsG.selectAll(".bar-core, .bar-overlap").classed("active", false);
+}
+
+function clearDotHighlight() {
+  dotsG.selectAll(".person-dot")
+    .classed("dimmed", false)
+    .classed("highlighted", false)
+    .attr("r", 3);
+
+  labelsG.selectAll(".name-label")
+    .classed("visible", false)
+    .style("display", "none");
+
+  barsG.selectAll(".bar-core, .bar-overlap").classed("active", false);
+}
+
+function updateFilterButtons() {
+  document.querySelectorAll(".filter-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.mode === currentFilterMode);
+  });
+}
+
+/* =========================
+   UI
+========================= */
+
+const windowSlider = document.getElementById("windowSlider");
+const overlapSlider = document.getElementById("overlapSlider");
+const startYearInput = document.getElementById("startYearInput");
+const windowValue = document.getElementById("windowValue");
+const overlapValue = document.getElementById("overlapValue");
+
+function syncSliderLabels() {
+  const windowYears = +windowSlider.value;
+  let overlapYears = +overlapSlider.value;
+
+  overlapSlider.max = Math.min(25, windowYears - 1);
+
+  if (overlapYears >= windowYears) {
+    overlapYears = windowYears - 1;
+    overlapSlider.value = overlapYears;
+  }
+
+  windowValue.textContent = `${windowYears} years`;
+  overlapValue.textContent = `${overlapYears} years`;
+}
+
+/* =========================
+   DRAW
+========================= */
+
+function draw(periods, data, overlapYears) {
+  emptyG.selectAll("*").remove();
+
+  if (!periods.length || !data.length) {
+    barsG.selectAll("*").remove();
+    barValueLabelsG.selectAll("*").remove();
+    dotsG.selectAll("*").remove();
+    labelsG.selectAll("*").remove();
+    xAxisG.selectAll("*").remove();
+    yAxisG.selectAll("*").remove();
+    gridG.selectAll("*").remove();
+
+    emptyG.append("text")
+      .attr("class", "empty-message")
+      .attr("x", innerWidth / 2)
+      .attr("y", innerHeight / 2)
+      .attr("text-anchor", "middle")
+      .text("No valid data to display for the current filter.");
+    return;
+  }
+
+  const minYear = d3.min(data, d => d.startYear);
+  const maxPeriodEnd = d3.max(periods, d => d.periodEnd);
+  const maxDays = d3.max([
+    d3.max(data, d => d.days),
+    d3.max(periods, d => d.medianDays)
+  ]);
+
+  const x = d3.scaleLinear()
+    .domain([minYear - 1, maxPeriodEnd + 1])
+    .range([0, innerWidth]);
+
+  const y = d3.scaleLinear()
+    .domain([0, maxDays]).nice()
+    .range([innerHeight, 0]);
+
+  const yGrid = d3.axisLeft(y)
+    .tickSize(-innerWidth)
+    .tickValues([365*5,365*10,365*15,365*20,365*25,365*30,365*35])
+
+    .tickFormat("");
+
+  gridG.call(yGrid);
+
+  const xAxis = d3.axisBottom(x)
+    .ticks(Math.min(16, Math.max(4, Math.floor((maxPeriodEnd - minYear) / 5))))
+    .tickFormat(d3.format("d"));
+
+  const yAxis = d3.axisLeft(y)
+    .ticks(8)
+    .tickFormat(d => d3.format(",")(d/365))
+    .tickValues([365*10,365*20,365*30]);
+
+  xAxisG.call(xAxis);
+  yAxisG.call(yAxis);
+
+  const groups = barsG.selectAll(".period")
+    .data(periods, d => d.label);
+
+  const groupsEnter = groups.enter()
+    .append("g")
+    .attr("class", "period");
+
+  groupsEnter.append("rect").attr("class", "bar-core");
+  groupsEnter.append("rect").attr("class", "bar-overlap");
+
+  const groupsMerged = groupsEnter.merge(groups);
+
+  groupsMerged.select(".bar-core")
+    .on("mousemove", function(event, d) {
+      barsG.selectAll(".bar-core, .bar-overlap").classed("active", false);
+      d3.select(this).classed("active", true);
+      d3.select(this.parentNode).select(".bar-overlap").classed("active", true);
+      setDotHighlight(d);
+
+      const nameList = d.people.map(p => p.name || "Unknown").join("<br>");
+
+      showTooltip(
+        event,
+        `<strong>${d.label}</strong><br>` +
+        // `Median days: ${formatDays(d.medianDays)}<br>` +
+        `Median years: ${formatYears(d.medianDays)}<br>` +
+        `People in period: ${d.count}<br>` +
+        // `Core window: ${formatYearLabel(d.periodStart)}–${formatYearLabel(d.coreEnd)}<br>` +
+        (d.medianPerson ? `Median point: ${d.medianPerson.name || "Unknown"}<br>` : "") +
+        `<br><strong>Names in period</strong><br>${nameList}`
+      );
+    })
+    .on("mouseleave", function() {
+      clearDotHighlight();
+      hideTooltip();
+    })
+    .transition()
+    .duration(450)
+    .attr("x", d => x(d.periodStart))
+    .attr("width", d => Math.max(1, x(d.coreEnd + 1) - x(d.periodStart)-3))
+    .attr("y", d => y(d.medianDays))
+    .attr("height", d => innerHeight - y(d.medianDays));
+
+      /* ===== BAR VALUE LABELS ===== */
+
+  const barValueLabels = barValueLabelsG.selectAll(".bar-value-label")
+    .data(periods, d => d.label);
+
+  barValueLabels.join(
+    enter => enter.append("text")
+      .attr("class", "bar-value-label")
+      .attr("x", d => x((d.periodStart + d.periodEnd) / 2))
+      .attr("y", d => y(d.medianDays) - 6)
+      .text(d => d3.format(".1f")(d.medianDays / 365.25)),
+
+    update => update
+      .attr("x", d => x((d.periodStart + d.periodEnd) / 2))
+      .attr("y", d => y(d.medianDays) - 6)
+      .text(d => d3.format(".1f")(d.medianDays / 365.25)),
+
+    exit => exit.remove()
+  );
+
+  groupsMerged.select(".bar-overlap")
+    .on("mousemove", function(event, d) {
+      barsG.selectAll(".bar-core, .bar-overlap").classed("active", false);
+      d3.select(this).classed("active", true);
+      d3.select(this.parentNode).select(".bar-core").classed("active", true);
+      setDotHighlight(d);
+
+      const nameList = d.people.map(p => p.name || "Unknown").join("<br>");
+
+      showTooltip(
+        event,
+        `<strong>${d.label}</strong><br>` +
+        // `Median days: ${formatDays(d.medianDays)}<br>` +
+        `Median years: ${formatYears(d.medianDays)}<br>` +
+        `People in period: ${d.count}<br>` +
+        `Overlap: ${overlapYears} years<br>` +
+        `Overlap window: ${formatYearLabel(d.coreEnd + 1)}–${formatYearLabel(d.periodEnd)}<br>` +
+        (d.medianPerson ? `Median point: ${d.medianPerson.name || "Unknown"}<br>` : "") +
+        `<br><strong>Names in period</strong><br>${nameList}`
+      );
+    })
+    .on("mouseleave", function() {
+      clearDotHighlight();
+      hideTooltip();
+    })
+    .transition()
+    .duration(450)
+    .attr("x", d => x(d.coreEnd + 1))
+    .attr("width", d => Math.max(0, x(d.periodEnd + 1) - x(d.coreEnd + 1)))
+    .attr("y", d => y(d.medianDays))
+    .attr("height", d => innerHeight - y(d.medianDays));
+
+  groups.exit().remove();
+
+  const dots = dotsG.selectAll(".person-dot")
+    .data(data, pointKey);
+
+  dots.join(
+    enter => enter.append("circle")
+      .attr("class", d => "person-dot" + (d.inOfficeBool ? " current" : ""))
+      .attr("r", 3)
+      .attr("cx", d => x(d.startYear))
+      .attr("cy", innerHeight)
+      .on("mousemove", function(event, d) {
+        showTooltip(
+          event,
+          `<strong>${d.name || "Unknown"}</strong><br>` +
+          `Start year: ${d.startYear}<br>` +
+          `Days in office: ${formatDays(d.days)}<br>` +
+          `Years in office: ${formatYears(d.days)}`
+        );
+      })
+      .on("mouseleave", hideTooltip)
+      .call(enter => enter.transition()
+        .duration(450)
+        .attr("cy", d => y(d.days))
+      ),
+
+    update => update
+       .attr("class", d => "person-dot" + (d.inOfficeBool ? " current" : ""))
+      .on("mousemove", function(event, d) {
+        showTooltip(
+          event,
+          `<strong>${d.name || "Unknown"}</strong><br>` +
+          `Start year: ${d.startYear}<br>` +
+          `Days in office: ${formatDays(d.days)}<br>` +
+          `Years in office: ${formatYears(d.days)}`
+        );
+      })
+      .on("mouseleave", hideTooltip)
+      .call(update => update.transition()
+        .duration(450)
+        .attr("cx", d => x(d.startYear))
+        .attr("cy", d => y(d.days))
+      ),
+
+    exit => exit.remove()
+  );
+
+
+  const medianPeople = periods
+    .map(d => d.medianPerson)
+    .filter(Boolean)
+    .filter((d, i, arr) => arr.findIndex(e => pointKey(e) === pointKey(d)) === i);
+
+  const medianDots = dotsG.selectAll(".median-dot")
+    .data(medianPeople, pointKey);
+
+  medianDots.join(
+    enter => enter.append("circle")
+      .attr("class", "median-dot")
+      .attr("r", 4.5)
+      .attr("cx", d => x(d.startYear))
+      .attr("cy", innerHeight)
+      .on("mousemove", function(event, d) {
+        showTooltip(
+          event,
+          `<strong>${d.name || "Unknown"}</strong><br>` +
+          `Start year: ${d.startYear}<br>` +
+          `Days in office: ${formatDays(d.days)}<br>` +
+          `Years in office: ${formatYears(d.days)}<br>` +
+          `Median representative point`
+        );
+      })
+      .on("mouseleave", hideTooltip)
+      .call(enter => enter.transition()
+        .duration(450)
+        .attr("cy", d => y(d.days))
+      ),
+
+    update => update
+      .on("mousemove", function(event, d) {
+        showTooltip(
+          event,
+          `<strong>${d.name || "Unknown"}</strong><br>` +
+          `Start year: ${d.startYear}<br>` +
+          `Days in office: ${formatDays(d.days)}<br>` +
+          `Years in office: ${formatYears(d.days)}<br>` +
+          `Median representative point`
+        );
+      })
+      .on("mouseleave", hideTooltip)
+      .call(update => update.transition()
+        .duration(450)
+        .attr("cx", d => x(d.startYear))
+        .attr("cy", d => y(d.days))
+      ),
+
+    exit => exit.remove()
+  );
+
+  const labels = labelsG.selectAll(".name-label")
+    .data(data, labelKey);
+
+  labels.join(
+    enter => enter.append("text")
+      .attr("class", "name-label")
+      .style("display", "none")
+      .attr("x", d => x(d.startYear) + 6)
+      .attr("y", d => y(d.days) - 6)
+      .text(d => d.name || "Unknown"),
+
+    update => update
+      .attr("x", d => x(d.startYear) + 6)
+      .attr("y", d => y(d.days) - 6)
+      .text(d => d.name || "Unknown"),
+
+    exit => exit.remove()
+  );
+}
+
+/* =========================
+   LOAD DATA
+========================= */
+
+d3.csv(CSV_PATH).then(raw => {
+  const fullData = raw.map(d => {
+    const startDate = parseDateFlexible(d[COL_START]);
+    const days = toNumber(d[COL_DAYS]);
+
+    return {
+      name: d[COL_NAME],
+      days,
+      startDate,
+      startYear: startDate ? startDate.getFullYear() : null,
+      inOffice: d[COL_CURRENT],
+      inOfficeBool: isCurrentJustice(d[COL_CURRENT])
+    };    
+  }
+  
+).filter(d => d.startYear != null && d.days != null);
+
+
+console.log(fullData.map(d => ({
+  name: d.name,
+  inOfficeRaw: d.inOffice,
+  inOfficeBool: d.inOfficeBool
+})));
+
+  const datasetMinYear = d3.min(fullData, d => d.startYear);
+  if (datasetMinYear != null) {
+    startYearInput.value = datasetMinYear;
+    startYearInput.placeholder = String(datasetMinYear);
+  }
+
+  function update() {
+    syncSliderLabels();
+    updateFilterButtons();
+
+    const windowYears = +windowSlider.value;
+    const overlapYears = +overlapSlider.value;
+
+    const startOverride = startYearInput.value !== ""
+      ? +startYearInput.value
+      : null;
+
+    const filteredData = filterDataByMode(fullData, currentFilterMode);
+    const periods = buildPeriods(filteredData, windowYears, overlapYears, startOverride);
+
+    draw(periods, filteredData, overlapYears);
+  }
+
+  windowSlider.addEventListener("input", update);
+  overlapSlider.addEventListener("input", update);
+  startYearInput.addEventListener("input", update);
+
+  document.querySelectorAll(".filter-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      currentFilterMode = btn.dataset.mode;
+      update();
+    });
+  });
+
+  update();
+}).catch(err => {
+  console.error("Error loading CSV:", err);
+
+  emptyG.append("text")
+    .attr("class", "empty-message")
+    .attr("x", innerWidth / 2)
+    .attr("y", innerHeight / 2)
+    .attr("text-anchor", "middle")
+    .text("Could not load CSV. Check CSV_PATH and column names.");
+});
+</script>
+</body>
+</html>
