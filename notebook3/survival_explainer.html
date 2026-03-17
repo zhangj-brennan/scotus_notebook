@@ -1,0 +1,822 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Supreme Court Survival Rate Explainer</title>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<style>
+  @font-face {
+    font-family: "Benton";
+    src: url("../original/Benton Sans/Benton Sans Book.otf");
+  }
+  @font-face {
+    font-family: "BentonStrong";
+    src: url("../original/Benton Sans/Benton Sans Bold.otf");
+  }
+
+  :root{
+    --bg:#ffffff;
+    --text:#111111;
+    --muted:#666666;
+    --line:#d9d9d9;
+    --axis:#8a8a8a;
+    --dot:#111111;
+    --dot-current:#c00000;
+    --accent:#c00000;
+    --accent2:#0057b8;
+    --panel-max:1100px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body{
+    margin:0;
+    font-family:"Benton", Arial, sans-serif;
+    color:var(--text);
+    background:var(--bg);
+    line-height:1.45;
+  }
+
+  .page{
+    max-width:var(--panel-max);
+    margin:0 auto;
+    padding:28px 24px 80px;
+  }
+
+  h1{
+    font-family:"BentonStrong", Arial, sans-serif;
+    font-size:34px;
+    line-height:1.05;
+    margin:0 0 10px;
+  }
+
+  .intro{
+    font-size:18px;
+    color:var(--muted);
+    max-width:900px;
+    margin-bottom:24px;
+  }
+
+  .scene{
+    padding:28px 0 36px;
+    border-top:2px solid #000;
+  }
+
+  .scene:first-of-type{
+    margin-top:18px;
+  }
+
+  .scene-number{
+    font-family:"BentonStrong", Arial, sans-serif;
+    font-size:14px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:4px;
+  }
+
+  .scene h2{
+    font-family:"BentonStrong", Arial, sans-serif;
+    font-size:28px;
+    line-height:1.1;
+    margin:0 0 10px;
+  }
+
+  .scene p{
+    font-size:18px;
+    max-width:850px;
+    margin:0 0 16px;
+  }
+
+  .chart-wrap{
+    margin-top:10px;
+    position:relative;
+  }
+
+  svg{
+    width:100%;
+    height:auto;
+    display:block;
+    overflow:visible;
+  }
+
+  .axis path,
+  .axis line{
+    stroke:var(--axis);
+    stroke-width:1;
+    shape-rendering:crispEdges;
+  }
+
+  .axis text{
+    font-size:13px;
+    fill:var(--muted);
+  }
+
+  .grid line{
+    stroke:var(--line);
+    stroke-opacity:0.8;
+  }
+
+  .grid path{
+    display:none;
+  }
+
+  .dot{
+    fill:var(--dot);
+    opacity:0.9;
+  }
+
+  .dot.current{
+    fill:var(--dot-current);
+  }
+
+  .threshold-line{
+    stroke:var(--accent);
+    stroke-width:2.5;
+    stroke-dasharray:7 5;
+  }
+
+  .threshold-line.vertical{
+    stroke:var(--accent2);
+  }
+
+  .drag-hit{
+    stroke:transparent;
+    stroke-width:24;
+    cursor:ns-resize;
+  }
+
+  .drag-hit.vertical{
+    cursor:ew-resize;
+  }
+
+  .annotation{
+    font-size:16px;
+    fill:var(--text);
+  }
+
+  .summary-box{
+    font-size:18px;
+    margin:10px 0 0;
+    padding:12px 14px;
+    background:#f5f5f5;
+    border-left:4px solid #000;
+  }
+
+  .summary-box .big{
+    font-family:"BentonStrong", Arial, sans-serif;
+    font-size:28px;
+    line-height:1;
+  }
+
+  .quad-label{
+    font-family:"BentonStrong", Arial, sans-serif;
+    font-size:40px;
+    fill:#000;
+    text-anchor:middle;
+    dominant-baseline:middle;
+  }
+
+  .quad-sub{
+    font-size:13px;
+    fill:var(--muted);
+    text-anchor:middle;
+  }
+
+  .small-note{
+    color:var(--muted);
+    font-size:14px;
+    margin-top:8px;
+  }
+
+  .legend{
+    display:flex;
+    gap:18px;
+    align-items:center;
+    flex-wrap:wrap;
+    margin:10px 0 4px;
+    font-size:14px;
+    color:var(--muted);
+  }
+
+  .legend-item{
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+
+  .legend-swatch{
+    width:12px;
+    height:12px;
+    border-radius:50%;
+    background:#000;
+    flex:0 0 auto;
+  }
+
+  .legend-swatch.current{
+    background:var(--dot-current);
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Survival Rate Explainer</h1>
+  <div class="intro">
+    A sequence of charts using Supreme Court justices to explain how survival rate works.
+    Each chart starts from the same base scatterplot: start date on the x-axis, and years in office on the y-axis.
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><span class="legend-swatch"></span><span>Former justices</span></div>
+    <div class="legend-item"><span class="legend-swatch current"></span><span>Current justices</span></div>
+  </div>
+
+  <section class="scene">
+    <div class="scene-number">Step 1</div>
+    <h2>Start Date vs. Tenure</h2>
+    <p>Here are all the justices. The y-axis shows their years in office, and the x-axis shows the date they started.</p>
+    <div id="scene1" class="chart-wrap"></div>
+  </section>
+
+  <section class="scene">
+    <div class="scene-number">Step 2</div>
+    <h2>What percentage of justices last more than 10 years?</h2>
+    <p></p>
+    <div id="scene2-summary" class="summary-box"></div>
+    <div id="scene2" class="chart-wrap"></div>
+  </section>
+
+  <section class="scene">
+    <div class="scene-number">Step 3</div>
+    <h2>What about tenure at 20 years?</h2>
+    <!-- <p>Now the threshold moves to 20 years. Out of all justices, how many were still in office at least that long?</p> -->
+    <div id="scene3-summary" class="summary-box"></div>
+    <div id="scene3" class="chart-wrap"></div>
+  </section>
+
+  <section class="scene">
+    <div class="scene-number">Step 4</div>
+    <h2>An interactive survival threshold</h2>
+    <p>Drag the line up and down to see how survival rate works at each length of tenure.</p>
+    <div id="scene4-summary" class="summary-box"></div>
+    <div id="scene4" class="chart-wrap"></div>
+    <div class="small-note">Drag the red dashed line vertically.</div>
+  </section>
+
+  <section class="scene">
+    <div class="scene-number">Step 5</div>
+    <h2>How has that survival rate changed over time?</h2>
+    <p>The large percentages show the share in each side of the split that falls into each quadrant.</p>
+    <div id="scene5-summary" class="summary-box"></div>
+    <div id="scene5" class="chart-wrap"></div>
+  </section>
+
+  <section class="scene">
+    <div class="scene-number">Step 6</div>
+    <h2>Interactive time split and tenure threshold</h2>
+    <p>Now both lines are draggable. Move the vertical line left and right for time, and the horizontal line up and down for tenure. The percentages update automatically.</p>
+    <div id="scene6-summary" class="summary-box"></div>
+    <div id="scene6" class="chart-wrap"></div>
+    <div class="small-note">Drag the red horizontal line and the blue vertical line.</div>
+  </section>
+</div>
+
+<script>
+const CONFIG = {
+  csvPath: "data.csv",
+
+  fields: {
+    name: "name",
+    days: "days",
+    start: "start date",
+    isCurrent: "isCurrent"
+  },
+
+  chart: {
+    width: 1040,
+    height: 430,
+    margin: { top: 20, right: 24, bottom: 54, left: 72 }
+  },
+
+  pointRadius: 4.5,
+
+  scene2Threshold: 10,
+  scene3Threshold: 20,
+  scene4InitialThreshold: 15,
+  scene5Threshold: 20,
+  scene5SplitYear: 1950,
+  scene6InitialThreshold: 20,
+  scene6InitialSplitYear: 1950,
+
+  yAxisMaxPaddingYears: 2
+};
+
+loadData();
+
+async function loadData() {
+  const raw = await d3.csv(CONFIG.csvPath);
+  const data = raw
+    .map(parseRow)
+    .filter(d => d.startDate && isFinite(d.tenureYears))
+    .sort((a, b) => d3.ascending(a.startDate, b.startDate));
+
+  renderAll(data);
+}
+
+function parseRow(d) {
+  const startDate = parseDateFlexible(d[CONFIG.fields.start]);
+  const days = parseNumberFlexible(d[CONFIG.fields.days]);
+  const tenureYears = days / 365.25;
+
+  return {
+    raw: d,
+    name: d[CONFIG.fields.name] || "",
+    startDate,
+    days,
+    tenureYears,
+    isCurrent: parseBooleanFlexible(d[CONFIG.fields.isCurrent])
+  };
+}
+
+function parseDateFlexible(value) {
+  if (!value) return null;
+
+  const tryFormats = [
+    d3.timeParse("%Y-%m-%d"),
+    d3.timeParse("%m/%d/%Y"),
+    d3.timeParse("%m/%d/%y"),
+    d3.timeParse("%Y/%m/%d"),
+    d3.timeParse("%b %d, %Y"),
+    d3.timeParse("%B %d, %Y")
+  ];
+
+  for (const parse of tryFormats) {
+    const dt = parse(value);
+    if (dt) return dt;
+  }
+
+  const fallback = new Date(value);
+  return isNaN(fallback) ? null : fallback;
+}
+
+function parseNumberFlexible(value) {
+  if (value == null || value === "") return NaN;
+  return +String(value).replace(/,/g, "").trim();
+}
+
+function parseBooleanFlexible(value) {
+  if (value == null) return false;
+  const v = String(value).trim().toLowerCase();
+  return v === "true" || v === "1" || v === "yes" || v === "y";
+}
+
+function renderAll(data) {
+  renderScene1(data);
+  renderSceneThresholdStatic(data, "#scene2", "#scene2-summary", CONFIG.scene2Threshold);
+  renderSceneThresholdStatic(data, "#scene3", "#scene3-summary", CONFIG.scene3Threshold);
+  renderScene4(data);
+  renderScene5(data);
+  renderScene6(data);
+}
+
+function getScales(data) {
+  const { width, height, margin } = CONFIG.chart;
+  const innerWidth = width - margin.left - margin.right;
+  const innerHeight = height - margin.top - margin.bottom;
+
+  const maxYears = d3.max(data, d => d.tenureYears);
+  const yMax = Math.ceil(maxYears + CONFIG.yAxisMaxPaddingYears);
+
+  const x = d3.scaleTime()
+    .domain(d3.extent(data, d => d.startDate))
+    .nice()
+    .range([margin.left, margin.left + innerWidth]);
+
+  const y = d3.scaleLinear()
+    .domain([0, yMax])
+    .nice()
+    .range([margin.top + innerHeight, margin.top]);
+
+  return {
+    x, y, width, height, margin, innerWidth, innerHeight,
+    yMax,
+    minDate: d3.min(data, d => d.startDate),
+    maxDate: d3.max(data, d => d.startDate)
+  };
+}
+
+function makeSVG(container) {
+  return d3.select(container)
+    .append("svg")
+    .attr("viewBox", `0 0 ${CONFIG.chart.width} ${CONFIG.chart.height}`);
+}
+
+function drawBaseChart(svg, data) {
+  const scales = getScales(data);
+  const { x, y, width, height, margin, innerWidth, innerHeight } = scales;
+
+  const xGrid = d3.axisBottom(x).ticks(8).tickSize(-innerHeight).tickFormat("");
+  const yGrid = d3.axisLeft(y).ticks(6).tickSize(-innerWidth).tickFormat("");
+
+  svg.append("g")
+    .attr("class", "grid")
+    .attr("transform", `translate(0,${margin.top + innerHeight})`)
+    .call(xGrid);
+
+  svg.append("g")
+    .attr("class", "grid")
+    .attr("transform", `translate(${margin.left},0)`)
+    .call(yGrid);
+
+  svg.append("g")
+    .attr("class", "axis")
+    .attr("transform", `translate(0,${margin.top + innerHeight})`)
+    .call(d3.axisBottom(x).ticks(8));
+
+  svg.append("g")
+    .attr("class", "axis")
+    .attr("transform", `translate(${margin.left},0)`)
+    .call(d3.axisLeft(y).ticks(6));
+
+  svg.append("text")
+    .attr("x", margin.left + innerWidth / 2)
+    .attr("y", height - 10)
+    .attr("text-anchor", "middle")
+    .attr("class", "annotation")
+    .text("Start date");
+
+  svg.append("text")
+    .attr("transform", `translate(20, ${margin.top + innerHeight / 2}) rotate(-90)`)
+    .attr("text-anchor", "middle")
+    .attr("class", "annotation")
+    .text("Years in office");
+
+  svg.append("g")
+    .selectAll("circle")
+    .data(data)
+    .join("circle")
+    .attr("class", d => d.isCurrent ? "dot current" : "dot")
+    .attr("cx", d => x(d.startDate))
+    .attr("cy", d => y(d.tenureYears))
+    .attr("r", CONFIG.pointRadius);
+
+  return scales;
+}
+
+function countSurvivors(data, thresholdYears) {
+  const survived = data.filter(d => d.tenureYears >= thresholdYears).length;
+  const total = data.length;
+  const rate = total ? survived / total : 0;
+  return { survived, total, rate };
+}
+
+function pct(v) {
+  return d3.format(".0%")(v);
+}
+
+function pct1(v) {
+  return d3.format(".1%")(v);
+}
+
+function formatSummaryHTML({ threshold, survived, total, rate }) {
+  return `
+    <div><span class="big">${pct1(rate)}</span></div>
+    <div>At <strong>${d3.format(".1f")(threshold)}</strong> years, <strong>${survived}</strong> out of <strong>${total}</strong> justices remained in office at least that long.</div>
+  `;
+}
+
+function splitCounts(data, splitDate, thresholdYears) {
+  const left = data.filter(d => d.startDate < splitDate);
+  const right = data.filter(d => d.startDate >= splitDate);
+
+  const leftTop = left.filter(d => d.tenureYears >= thresholdYears).length;
+  const leftBottom = left.filter(d => d.tenureYears < thresholdYears).length;
+  const rightTop = right.filter(d => d.tenureYears >= thresholdYears).length;
+  const rightBottom = right.filter(d => d.tenureYears < thresholdYears).length;
+
+  return {
+    left: {
+      total: left.length,
+      top: leftTop,
+      bottom: leftBottom,
+      topRate: left.length ? leftTop / left.length : 0,
+      bottomRate: left.length ? leftBottom / left.length : 0
+    },
+    right: {
+      total: right.length,
+      top: rightTop,
+      bottom: rightBottom,
+      topRate: right.length ? rightTop / right.length : 0,
+      bottomRate: right.length ? rightBottom / right.length : 0
+    }
+  };
+}
+
+function yearDate(year) {
+  return new Date(year, 0, 1);
+}
+
+function renderScene1(data) {
+  const svg = makeSVG("#scene1");
+  drawBaseChart(svg, data);
+}
+
+function renderSceneThresholdStatic(data, chartSelector, summarySelector, threshold) {
+  const summary = countSurvivors(data, threshold);
+  d3.select(summarySelector).html(formatSummaryHTML({ threshold, ...summary }));
+
+  const svg = makeSVG(chartSelector);
+  const { y, margin, innerWidth } = drawBaseChart(svg, data);
+
+  svg.append("line")
+    .attr("class", "threshold-line")
+    .attr("x1", margin.left)
+    .attr("x2", margin.left + innerWidth)
+    .attr("y1", y(threshold))
+    .attr("y2", y(threshold));
+
+  svg.append("text")
+    .attr("class", "annotation")
+    .attr("x", margin.left + innerWidth - 6)
+    .attr("y", y(threshold) - 8)
+    .attr("text-anchor", "end")
+    .text(`${d3.format(".0f")(threshold)} years`);
+}
+
+function renderScene4(data) {
+  const summarySel = d3.select("#scene4-summary");
+  const svg = makeSVG("#scene4");
+  const { y, margin, innerWidth, yMax } = drawBaseChart(svg, data);
+
+  let threshold = CONFIG.scene4InitialThreshold;
+
+  const thresholdLine = svg.append("line")
+    .attr("class", "threshold-line")
+    .attr("x1", margin.left)
+    .attr("x2", margin.left + innerWidth);
+
+  const hit = svg.append("line")
+    .attr("class", "drag-hit")
+    .attr("x1", margin.left)
+    .attr("x2", margin.left + innerWidth);
+
+  const label = svg.append("text")
+    .attr("class", "annotation")
+    .attr("text-anchor", "end");
+
+  function update() {
+    threshold = Math.max(0, Math.min(yMax, threshold));
+    const yy = y(threshold);
+
+    thresholdLine.attr("y1", yy).attr("y2", yy);
+    hit.attr("y1", yy).attr("y2", yy);
+    label
+      .attr("x", margin.left + innerWidth - 6)
+      .attr("y", yy - 8)
+      .text(`${d3.format(".1f")(threshold)} years`);
+
+    const summary = countSurvivors(data, threshold);
+    summarySel.html(formatSummaryHTML({ threshold, ...summary }));
+  }
+
+  hit.call(
+    d3.drag().on("drag", function(event) {
+      threshold = y.invert(event.y);
+      update();
+    })
+  );
+
+  update();
+}
+
+function renderScene5(data) {
+  const summarySel = d3.select("#scene5-summary");
+  const svg = makeSVG("#scene5");
+  const { x, y, margin, innerWidth, innerHeight } = drawBaseChart(svg, data);
+
+  const threshold = CONFIG.scene5Threshold;
+  const splitDate = yearDate(CONFIG.scene5SplitYear);
+
+  svg.append("line")
+    .attr("class", "threshold-line")
+    .attr("x1", margin.left)
+    .attr("x2", margin.left + innerWidth)
+    .attr("y1", y(threshold))
+    .attr("y2", y(threshold));
+
+  svg.append("line")
+    .attr("class", "threshold-line vertical")
+    .attr("x1", x(splitDate))
+    .attr("x2", x(splitDate))
+    .attr("y1", margin.top)
+    .attr("y2", margin.top + innerHeight);
+
+  svg.append("text")
+    .attr("class", "annotation")
+    .attr("x", margin.left + innerWidth - 6)
+    .attr("y", y(threshold) - 8)
+    .attr("text-anchor", "end")
+    .text(`${threshold} years`);
+
+  svg.append("text")
+    .attr("class", "annotation")
+    .attr("x", x(splitDate) + 6)
+    .attr("y", margin.top + 16)
+    .text(CONFIG.scene5SplitYear);
+
+  const counts = splitCounts(data, splitDate, threshold);
+
+  const xLeftCenter = (margin.left + x(splitDate)) / 2;
+  const xRightCenter = (x(splitDate) + margin.left + innerWidth) / 2;
+  const yTopCenter = (margin.top + y(threshold)) / 2;
+  const yBottomCenter = (y(threshold) + margin.top + innerHeight) / 2;
+
+  svg.append("text")
+    .attr("class", "quad-label")
+    .attr("x", xLeftCenter)
+    .attr("y", yTopCenter)
+    .text(pct(counts.left.topRate));
+
+  svg.append("text")
+    .attr("class", "quad-sub")
+    .attr("x", xLeftCenter)
+    .attr("y", yTopCenter + 26)
+    .text(`before ${CONFIG.scene5SplitYear}: ${counts.left.top}/${counts.left.total}`);
+
+  svg.append("text")
+    .attr("class", "quad-label")
+    .attr("x", xLeftCenter)
+    .attr("y", yBottomCenter)
+    .text(pct(counts.left.bottomRate));
+
+  svg.append("text")
+    .attr("class", "quad-sub")
+    .attr("x", xLeftCenter)
+    .attr("y", yBottomCenter + 26)
+    .text(`before ${CONFIG.scene5SplitYear}: below threshold`);
+
+  svg.append("text")
+    .attr("class", "quad-label")
+    .attr("x", xRightCenter)
+    .attr("y", yTopCenter)
+    .text(pct(counts.right.topRate));
+
+  svg.append("text")
+    .attr("class", "quad-sub")
+    .attr("x", xRightCenter)
+    .attr("y", yTopCenter + 26)
+    .text(`${CONFIG.scene5SplitYear}+ : ${counts.right.top}/${counts.right.total}`);
+
+  svg.append("text")
+    .attr("class", "quad-label")
+    .attr("x", xRightCenter)
+    .attr("y", yBottomCenter)
+    .text(pct(counts.right.bottomRate));
+
+  svg.append("text")
+    .attr("class", "quad-sub")
+    .attr("x", xRightCenter)
+    .attr("y", yBottomCenter + 26)
+    .text(`${CONFIG.scene5SplitYear}+ : below threshold`);
+
+  summarySel.html(`
+    <div><span class="big">Before ${CONFIG.scene5SplitYear}: ${pct1(counts.left.topRate)}</span></div>
+    <div>
+      With a split at <strong>${CONFIG.scene5SplitYear}</strong> and a tenure threshold of <strong>${threshold} years</strong>,
+      <strong>${counts.left.top}</strong> out of <strong>${counts.left.total}</strong> justices who started before ${CONFIG.scene5SplitYear}
+      stayed at least ${threshold} years.
+    </div>
+    <div style="margin-top:8px;">
+      After the split, <strong>${counts.right.top}</strong> out of <strong>${counts.right.total}</strong> did.
+    </div>
+  `);
+}
+
+function renderScene6(data) {
+  const summarySel = d3.select("#scene6-summary");
+  const svg = makeSVG("#scene6");
+  const { x, y, margin, innerWidth, innerHeight, yMax, minDate, maxDate } = drawBaseChart(svg, data);
+
+  let threshold = CONFIG.scene6InitialThreshold;
+  let splitDate = yearDate(CONFIG.scene6InitialSplitYear);
+
+  const hLine = svg.append("line")
+    .attr("class", "threshold-line")
+    .attr("x1", margin.left)
+    .attr("x2", margin.left + innerWidth);
+
+  const vLine = svg.append("line")
+    .attr("class", "threshold-line vertical")
+    .attr("y1", margin.top)
+    .attr("y2", margin.top + innerHeight);
+
+  const hHit = svg.append("line")
+    .attr("class", "drag-hit")
+    .attr("x1", margin.left)
+    .attr("x2", margin.left + innerWidth);
+
+  const vHit = svg.append("line")
+    .attr("class", "drag-hit vertical")
+    .attr("y1", margin.top)
+    .attr("y2", margin.top + innerHeight);
+
+  const hLabel = svg.append("text")
+    .attr("class", "annotation")
+    .attr("text-anchor", "end");
+
+  const vLabel = svg.append("text")
+    .attr("class", "annotation")
+    .attr("text-anchor", "start");
+
+  const quad = {
+    tl: svg.append("text").attr("class", "quad-label"),
+    tlSub: svg.append("text").attr("class", "quad-sub"),
+    bl: svg.append("text").attr("class", "quad-label"),
+    blSub: svg.append("text").attr("class", "quad-sub"),
+    tr: svg.append("text").attr("class", "quad-label"),
+    trSub: svg.append("text").attr("class", "quad-sub"),
+    br: svg.append("text").attr("class", "quad-label"),
+    brSub: svg.append("text").attr("class", "quad-sub")
+  };
+
+  function update() {
+    threshold = Math.max(0, Math.min(yMax, threshold));
+    splitDate = new Date(Math.max(+minDate, Math.min(+maxDate, +splitDate)));
+
+    const yy = y(threshold);
+    const xx = x(splitDate);
+
+    hLine.attr("y1", yy).attr("y2", yy);
+    hHit.attr("y1", yy).attr("y2", yy);
+
+    vLine.attr("x1", xx).attr("x2", xx);
+    vHit.attr("x1", xx).attr("x2", xx);
+
+    hLabel
+      .attr("x", margin.left + innerWidth - 6)
+      .attr("y", yy - 8)
+      .text(`${d3.format(".1f")(threshold)} years`);
+
+    vLabel
+      .attr("x", xx + 6)
+      .attr("y", margin.top + 16)
+      .text(d3.timeFormat("%Y")(splitDate));
+
+    const counts = splitCounts(data, splitDate, threshold);
+
+    const xLeftCenter = (margin.left + xx) / 2;
+    const xRightCenter = (xx + margin.left + innerWidth) / 2;
+    const yTopCenter = (margin.top + yy) / 2;
+    const yBottomCenter = (yy + margin.top + innerHeight) / 2;
+    const splitYearText = d3.timeFormat("%Y")(splitDate);
+
+    quad.tl.attr("x", xLeftCenter).attr("y", yTopCenter).text(pct(counts.left.topRate));
+    quad.tlSub.attr("x", xLeftCenter).attr("y", yTopCenter + 26)
+      .text(`before ${splitYearText}: ${counts.left.top}/${counts.left.total}`);
+
+    quad.bl.attr("x", xLeftCenter).attr("y", yBottomCenter).text(pct(counts.left.bottomRate));
+    quad.blSub.attr("x", xLeftCenter).attr("y", yBottomCenter + 26)
+      .text(`before ${splitYearText}: below`);
+
+    quad.tr.attr("x", xRightCenter).attr("y", yTopCenter).text(pct(counts.right.topRate));
+    quad.trSub.attr("x", xRightCenter).attr("y", yTopCenter + 26)
+      .text(`${splitYearText}+ : ${counts.right.top}/${counts.right.total}`);
+
+    quad.br.attr("x", xRightCenter).attr("y", yBottomCenter).text(pct(counts.right.bottomRate));
+    quad.brSub.attr("x", xRightCenter).attr("y", yBottomCenter + 26)
+      .text(`${splitYearText}+ : below`);
+
+    summarySel.html(`
+      <div><span class="big">${splitYearText} split · ${d3.format(".1f")(threshold)} years</span></div>
+      <div>
+        Before <strong>${splitYearText}</strong>, <strong>${counts.left.top}</strong> out of <strong>${counts.left.total}</strong>
+        justices stayed at least <strong>${d3.format(".1f")(threshold)}</strong> years:
+        <strong>${pct1(counts.left.topRate)}</strong>.
+      </div>
+      <div style="margin-top:8px;">
+        ${splitYearText} and after, <strong>${counts.right.top}</strong> out of <strong>${counts.right.total}</strong> did:
+        <strong>${pct1(counts.right.topRate)}</strong>.
+      </div>
+    `);
+  }
+
+  hHit.call(
+    d3.drag().on("drag", function(event) {
+      threshold = y.invert(event.y);
+      update();
+    })
+  );
+
+  vHit.call(
+    d3.drag().on("drag", function(event) {
+      splitDate = x.invert(event.x);
+      update();
+    })
+  );
+
+  update();
+}
+</script>
+</body>
+</html>
