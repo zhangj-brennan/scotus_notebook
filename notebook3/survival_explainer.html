@@ -55,7 +55,47 @@
     font-size:18px;
     color:var(--muted);
     max-width:900px;
-    margin-bottom:24px;
+    margin-bottom:18px;
+  }
+
+.controls{
+  position: sticky;
+  top: 12px;
+  z-index: 1000;
+
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  gap:14px;
+  flex-wrap:wrap;
+
+  margin:0 0 18px;
+  padding:10px 12px;
+
+  background:rgba(255,255,255,0.96);
+  border:2px solid #000;
+}
+
+  .toggle-btn{
+    appearance:none;
+    border:2px solid #000;
+    background:#fff;
+    color:#000;
+    padding:10px 14px;
+    font-family:"BentonStrong", Arial, sans-serif;
+    font-size:14px;
+    line-height:1;
+    cursor:pointer;
+  }
+
+  .toggle-btn.active{
+    background:#000;
+    color:#fff;
+  }
+
+  .controls-note{
+    font-size:14px;
+    color:var(--muted);
   }
 
   .scene{
@@ -195,7 +235,7 @@
     gap:18px;
     align-items:center;
     flex-wrap:wrap;
-    margin:10px 0 4px;
+    margin:6px 0 4px;
     font-size:14px;
     color:var(--muted);
   }
@@ -227,53 +267,58 @@
     Each chart starts from the same base scatterplot: start date on the x-axis, and years in office on the y-axis.
   </div>
 
+  <div class="controls">
+    <button id="toggleCurrentBtn" class="toggle-btn">Hide current justices</button>
+    <div id="controlsNote" class="controls-note">Showing all justices.</div>
+  </div>
+
   <div class="legend">
     <div class="legend-item"><span class="legend-swatch"></span><span>Former justices</span></div>
     <div class="legend-item"><span class="legend-swatch current"></span><span>Current justices</span></div>
   </div>
 
   <section class="scene">
-    <div class="scene-number">Step 1</div>
-    <h2>Start Date vs. Tenure</h2>
+    <div class="scene-number">Scene 1</div>
+    <h2>A scatterplot of all justices</h2>
     <p>Here are all the justices. The y-axis shows their years in office, and the x-axis shows the date they started.</p>
     <div id="scene1" class="chart-wrap"></div>
   </section>
 
   <section class="scene">
-    <div class="scene-number">Step 2</div>
-    <h2>What percentage of justices last more than 10 years?</h2>
-    <p></p>
+    <div class="scene-number">Scene 2</div>
+    <h2>A horizontal line at 10 years</h2>
+    <p>What is their survival rate at 10 years? Out of all justices, how many stayed in office at least 10 years?</p>
     <div id="scene2-summary" class="summary-box"></div>
     <div id="scene2" class="chart-wrap"></div>
   </section>
 
   <section class="scene">
-    <div class="scene-number">Step 3</div>
+    <div class="scene-number">Scene 3</div>
     <h2>What about tenure at 20 years?</h2>
-    <!-- <p>Now the threshold moves to 20 years. Out of all justices, how many were still in office at least that long?</p> -->
+    <p>Now the threshold moves to 20 years. Out of all justices, how many were still in office at least that long?</p>
     <div id="scene3-summary" class="summary-box"></div>
     <div id="scene3" class="chart-wrap"></div>
   </section>
 
   <section class="scene">
-    <div class="scene-number">Step 4</div>
+    <div class="scene-number">Scene 4</div>
     <h2>An interactive survival threshold</h2>
-    <p>Drag the line up and down to see how survival rate works at each length of tenure.</p>
+    <p>Here you can drag the line up and down to see how survival rate works at each length of tenure.</p>
     <div id="scene4-summary" class="summary-box"></div>
     <div id="scene4" class="chart-wrap"></div>
     <div class="small-note">Drag the red dashed line vertically.</div>
   </section>
 
   <section class="scene">
-    <div class="scene-number">Step 5</div>
+    <div class="scene-number">Scene 5</div>
     <h2>How has that survival rate changed over time?</h2>
-    <p>The large percentages show the share in each side of the split that falls into each quadrant.</p>
+    <p>Add a vertical line at 1950 and keep the horizontal line at 20 years. The large percentages show the share in each side of the split that falls into each quadrant.</p>
     <div id="scene5-summary" class="summary-box"></div>
     <div id="scene5" class="chart-wrap"></div>
   </section>
 
   <section class="scene">
-    <div class="scene-number">Step 6</div>
+    <div class="scene-number">Scene 6</div>
     <h2>Interactive time split and tenure threshold</h2>
     <p>Now both lines are draggable. Move the vertical line left and right for time, and the horizontal line up and down for tenure. The percentages update automatically.</p>
     <div id="scene6-summary" class="summary-box"></div>
@@ -312,16 +357,76 @@ const CONFIG = {
   yAxisMaxPaddingYears: 2
 };
 
+let ALL_DATA = [];
+let hideCurrent = false;
+
 loadData();
 
 async function loadData() {
   const raw = await d3.csv(CONFIG.csvPath);
-  const data = raw
+  ALL_DATA = raw
     .map(parseRow)
     .filter(d => d.startDate && isFinite(d.tenureYears))
     .sort((a, b) => d3.ascending(a.startDate, b.startDate));
 
-  renderAll(data);
+  setupControls();
+  renderAll();
+}
+
+function setupControls() {
+  const btn = d3.select("#toggleCurrentBtn");
+  btn.on("click", () => {
+    hideCurrent = !hideCurrent;
+    updateControlText();
+    renderAll();
+  });
+  updateControlText();
+}
+
+function updateControlText() {
+  const btn = d3.select("#toggleCurrentBtn");
+  const note = d3.select("#controlsNote");
+
+  if (hideCurrent) {
+    btn.text("Show current justices").classed("active", true);
+    note.text("Showing former justices only.");
+  } else {
+    btn.text("Hide current justices").classed("active", false);
+    note.text("Showing all justices.");
+  }
+}
+
+function getFilteredData() {
+  return hideCurrent ? ALL_DATA.filter(d => !d.isCurrent) : ALL_DATA.slice();
+}
+
+function clearCharts() {
+  d3.select("#scene1").html("");
+  d3.select("#scene2").html("");
+  d3.select("#scene3").html("");
+  d3.select("#scene4").html("");
+  d3.select("#scene5").html("");
+  d3.select("#scene6").html("");
+
+  d3.select("#scene2-summary").html("");
+  d3.select("#scene3-summary").html("");
+  d3.select("#scene4-summary").html("");
+  d3.select("#scene5-summary").html("");
+  d3.select("#scene6-summary").html("");
+}
+
+function renderAll() {
+  const data = getFilteredData();
+  clearCharts();
+
+  if (!data.length) return;
+
+  renderScene1(data);
+  renderSceneThresholdStatic(data, "#scene2", "#scene2-summary", CONFIG.scene2Threshold);
+  renderSceneThresholdStatic(data, "#scene3", "#scene3-summary", CONFIG.scene3Threshold);
+  renderScene4(data);
+  renderScene5(data);
+  renderScene6(data);
 }
 
 function parseRow(d) {
@@ -369,15 +474,6 @@ function parseBooleanFlexible(value) {
   if (value == null) return false;
   const v = String(value).trim().toLowerCase();
   return v === "true" || v === "1" || v === "yes" || v === "y";
-}
-
-function renderAll(data) {
-  renderScene1(data);
-  renderSceneThresholdStatic(data, "#scene2", "#scene2-summary", CONFIG.scene2Threshold);
-  renderSceneThresholdStatic(data, "#scene3", "#scene3-summary", CONFIG.scene3Threshold);
-  renderScene4(data);
-  renderScene5(data);
-  renderScene6(data);
 }
 
 function getScales(data) {
