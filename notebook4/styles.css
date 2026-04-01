@@ -415,7 +415,6 @@ svg{
   opacity:0.75;
 }
 @media (max-width: 980px){
-@media (max-width: 980px){
   .page-inner{
     padding:20px 16px 20px;
   }
@@ -426,15 +425,13 @@ svg{
 
   .scrolly-inner{
     display:block;
+    position:relative;
     overflow:visible;
   }
 
+  /* key fix */
   .figure-column{
-    position:relative;
-    top:auto;
-    height:auto;
-    min-height:0;
-    margin-bottom:20px;
+    display:contents;
   }
 
   .sticky-figure{
@@ -443,12 +440,15 @@ svg{
     top:8px;
     z-index:10;
     padding-top:0;
+    padding-bottom:8px;
     background:var(--bg);
+    border-bottom:1px solid #e3e3e3;
+    margin-bottom:18px;
   }
 
   .figure-header{
     margin-bottom:10px;
-    padding:10px 0 0;
+    padding-top:8px;
     background:var(--bg);
   }
 
@@ -475,11 +475,11 @@ svg{
   }
 
   .step{
-    min-height:62vh;
+    min-height:70vh;
     display:flex;
     align-items:flex-start;
     opacity:1;
-    padding-top:14px;
+    padding-top:10px;
   }
 
   .step-inner{
@@ -540,5 +540,4 @@ svg{
     font-size:12px;
     padding:8px 10px;
   }
-}
 }

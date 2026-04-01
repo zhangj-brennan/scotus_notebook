@@ -88,8 +88,8 @@ function setupScroller() {
     const sceneName = visible.target.dataset.scene;
     activateScene(sceneName);
   }, {
-    threshold: [0.35, 0.6, 0.85],
-    rootMargin: "-10% 0px -25% 0px"
+    threshold: [0.2, 0.45, 0.7],
+rootMargin: "-6% 0px -45% 0px"
   });
 
   els.steps.forEach(step => observer.observe(step));
