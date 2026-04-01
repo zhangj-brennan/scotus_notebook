@@ -1,0 +1,16 @@
+Files included:
+- index.html: page structure for the scrollytelling layout
+- styles.css: all visual styling
+- js/config.js: editable config values
+- js/data.js: CSV loading and parsing
+- js/chart.js: reusable chart rendering and interaction logic
+- js/scenes.js: scene definitions
+- js/main.js: app bootstrap, controls, and scroll observer
+
+This expects a `data.csv` file in the same folder as index.html.
+
+Sticky fix applied: the figure column now uses align-self:start, min-height:100vh, and a constrained sticky container.
+
+Sticky fix v2 applied: sticky moved from inner wrapper to the grid item itself; removed sticky overflow container.
+
+Toggle update: the hide/show current justices control is now rendered into reusable blocks inside each text step via .step-toggle-slot.
