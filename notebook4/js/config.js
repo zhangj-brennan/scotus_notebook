@@ -16,12 +16,12 @@ export const CONFIG = {
   sceneThresholds: {
     scene2: 10,
     scene3: 20,
-    scene4: 15,
-    scene5: 20,
-    scene6: 20
+    scene4: 20,
+    scene5: 15,
+    scene6: 30
   },
   sceneSplitYears: {
-    scene5: 1950,
-    scene6: 1950
+    scene5: 1966,
+    scene6: 1900
   }
 };

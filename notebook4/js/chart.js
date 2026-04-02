@@ -37,7 +37,7 @@ export function splitCounts(data, splitDate, thresholdYears) {
 export function buildSummaryThreshold(threshold, stats) {
   return `
     <span class="big">${pct1(stats.rate)}</span>
-    <div>At <strong>${d3.format(".1f")(threshold)}</strong> years, <strong>${stats.survived}</strong> out of <strong>${stats.total}</strong> justices stayed in office at least that long.</div>
+    <div>At <strong>${d3.format(".1f")(threshold)}</strong> years, <strong>${stats.survived}</strong> out of <strong>${stats.total}</strong> justices stayed at least that long.</div>
   `;
 }
 
@@ -50,11 +50,9 @@ export function buildSummarySplit(splitYear, threshold, counts) {
 }
 
 export class ScatterSurvivalChart {
-  constructor({ container, summaryContainer, titleContainer, labelContainer, hintContainer }) {
+  constructor({ container, summaryContainer, hintContainer }) {
     this.container = container;
     this.summaryContainer = summaryContainer;
-    this.titleContainer = titleContainer;
-    this.labelContainer = labelContainer;
     this.hintContainer = hintContainer;
 
     this.svg = null;
@@ -149,7 +147,8 @@ export class ScatterSurvivalChart {
 
     this.g.hLine = this.svg.append("line")
       .attr("class", "threshold-line")
-      .style("display", "none");
+      .style("display", "none")
+      .style("opacity", 1);
 
     this.g.vLine = this.svg.append("line")
       .attr("class", "threshold-line vertical")
@@ -165,7 +164,8 @@ export class ScatterSurvivalChart {
 
     this.g.hLabel = this.svg.append("text")
       .attr("class", "annotation")
-      .attr("text-anchor", "end");
+      .attr("text-anchor", "end")
+      .style("opacity", 1);
 
     this.g.vLabel = this.svg.append("text")
       .attr("class", "annotation")
@@ -205,20 +205,19 @@ export class ScatterSurvivalChart {
       .attr("cy", d => y(d.tenureYears))
       .attr("r", CONFIG.pointRadius)
       .on("mouseenter", (event, d) => this.showTooltip(event, d))
-      .on("mousemove", (event, d) => this.moveTooltip(event, d))
+      .on("mousemove", (event) => this.moveTooltip(event))
       .on("mouseleave", () => this.hideTooltip());
   }
 
   updateData(data) {
     this.renderDots(data);
-
     if (this.state) {
       this.renderScene(this.state.scene, this.state.sceneConfig, data);
     }
   }
 
   hideOverlays() {
-    this.g.hLine.interrupt().style("display", "none");
+    this.g.hLine.interrupt().style("display", "none").style("opacity", 1);
     this.g.vLine.interrupt().style("display", "none");
     this.g.hHit.interrupt().style("display", "none");
     this.g.vHit.interrupt().style("display", "none");
@@ -226,7 +225,7 @@ export class ScatterSurvivalChart {
     this.g.medianLine.interrupt().style("display", "none");
     this.g.medianLabel.interrupt().text("");
 
-    this.g.hLabel.interrupt().text("");
+    this.g.hLabel.interrupt().text("").style("opacity", 1);
     this.g.vLabel.interrupt().text("");
 
     this.g.dots.selectAll("circle")
@@ -263,7 +262,6 @@ export class ScatterSurvivalChart {
 
   showTooltip(event, d) {
     const startYear = d.startDate ? d3.timeFormat("%Y")(d.startDate) : "";
-
     this.tooltip
       .style("display", "block")
       .html(`
@@ -271,13 +269,11 @@ export class ScatterSurvivalChart {
         <div>Tenure: ${d3.format(".1f")(d.tenureYears)} years</div>
         <div>Start: ${startYear}</div>
       `);
-
     this.moveTooltip(event);
   }
 
   moveTooltip(event) {
     const [x, y] = d3.pointer(event, this.container);
-
     this.tooltip
       .style("left", `${x + 14}px`)
       .style("top", `${y - 14}px`);
@@ -288,62 +284,80 @@ export class ScatterSurvivalChart {
   }
 
   renderScene(sceneName, sceneConfig, data) {
+    const prevScene = this.state?.scene || null;
     this.state = { scene: sceneName, sceneConfig };
-    this.labelContainer.textContent = sceneConfig.label;
-    this.titleContainer.textContent = sceneConfig.title;
 
     const { x, y, margin, innerWidth, innerHeight } = this.scales;
     this.hideOverlays();
 
     if (sceneName === "scene1") {
       const median = d3.median(data, d => d.tenureYears) ?? 0;
-
       this.summaryContainer.innerHTML = `
         <span class="big">${d3.format(".1f")(median)} years</span>
         <div>Overall median tenure of the justices shown.</div>
       `;
-
-      // this.drawMedianLine(median);
       return;
     }
-if (sceneConfig.threshold != null) {
-  const yy = y(sceneConfig.threshold);
-  const animateThreshold = sceneName === "scene2" || sceneName === "scene3";
 
-  this.g.hLine
-    .interrupt()
-    .style("display", null)
-    .attr("x1", margin.left)
-    .attr("x2", margin.left + innerWidth);
+    if (sceneConfig.threshold != null) {
+      const yy = y(sceneConfig.threshold);
+      const fadeInOnly = prevScene !== "scene2" && prevScene !== "scene3" && (sceneName === "scene2" || sceneName === "scene3");
+      const animateMove = (prevScene === "scene2" && sceneName === "scene3") || (prevScene === "scene3" && sceneName === "scene2");
 
-  this.g.hLabel
-    .interrupt()
-    .text(`${d3.format(".1f")(sceneConfig.threshold)} years`);
+      this.g.hLine
+        .interrupt()
+        .attr("x1", margin.left)
+        .attr("x2", margin.left + innerWidth);
 
-  if (animateThreshold) {
-    this.g.hLine
-      .transition()
-      .duration(700)
-      .ease(d3.easeCubicInOut)
-      .attr("y1", yy)
-      .attr("y2", yy);
+      this.g.hLabel
+        .interrupt()
+        .text(`${d3.format(".1f")(sceneConfig.threshold)} years`);
 
-    this.g.hLabel
-      .transition()
-      .duration(700)
-      .ease(d3.easeCubicInOut)
-      .attr("x", margin.left + innerWidth - 6)
-      .attr("y", yy - 8);
-  } else {
-    this.g.hLine
-      .attr("y1", yy)
-      .attr("y2", yy);
+      if (fadeInOnly) {
+        this.g.hLine
+          .attr("y1", yy)
+          .attr("y2", yy)
+          .style("display", null)
+          .style("opacity", 0)
+          .transition()
+          .duration(300)
+          .style("opacity", 1);
 
-    this.g.hLabel
-      .attr("x", margin.left + innerWidth - 6)
-      .attr("y", yy - 8);
-  }
-}
+        this.g.hLabel
+          .attr("x", margin.left + innerWidth - 6)
+          .attr("y", yy - 8)
+          .style("opacity", 0)
+          .transition()
+          .duration(300)
+          .style("opacity", 1);
+      } else if (animateMove) {
+        this.g.hLine
+          .style("display", null)
+          .transition()
+          .duration(700)
+          .ease(d3.easeCubicInOut)
+          .attr("y1", yy)
+          .attr("y2", yy);
+
+        this.g.hLabel
+          .transition()
+          .duration(700)
+          .ease(d3.easeCubicInOut)
+          .attr("x", margin.left + innerWidth - 6)
+          .attr("y", yy - 8);
+      } else {
+        this.g.hLine
+          .style("display", null)
+          .style("opacity", 1)
+          .attr("y1", yy)
+          .attr("y2", yy);
+
+        this.g.hLabel
+          .style("opacity", 1)
+          .attr("x", margin.left + innerWidth - 6)
+          .attr("y", yy - 8);
+      }
+    }
 
     if (sceneConfig.splitDate) {
       const xx = x(sceneConfig.splitDate);
@@ -371,6 +385,7 @@ if (sceneConfig.threshold != null) {
     if (sceneName === "scene4") {
       const stats = countSurvivors(data, sceneConfig.threshold);
       this.summaryContainer.innerHTML = buildSummaryThreshold(sceneConfig.threshold, stats);
+      this.updateThresholdStyling(sceneConfig.threshold);
       this.hintContainer.textContent = "Drag the red dashed line vertically.";
       this.enableHorizontalDrag(data);
       return;
@@ -404,45 +419,17 @@ if (sceneConfig.threshold != null) {
     const yTopCenter = (margin.top + yy) / 2;
     const yBottomCenter = (yy + margin.top + innerHeight) / 2;
 
-    this.g.quad.tl
-      .attr("x", xLeftCenter)
-      .attr("y", yTopCenter)
-      .text(pct(counts.left.topRate));
+    this.g.quad.tl.attr("x", xLeftCenter).attr("y", yTopCenter).text(pct(counts.left.topRate));
+    this.g.quad.tlSub.attr("x", xLeftCenter).attr("y", yTopCenter + 26).text(`before ${splitYearText}: ${counts.left.top}/${counts.left.total}`);
 
-    this.g.quad.tlSub
-      .attr("x", xLeftCenter)
-      .attr("y", yTopCenter + 26)
-      .text(`before ${splitYearText}: ${counts.left.top}/${counts.left.total}`);
+    this.g.quad.bl.attr("x", xLeftCenter).attr("y", yBottomCenter).text(pct(counts.left.bottomRate));
+    this.g.quad.blSub.attr("x", xLeftCenter).attr("y", yBottomCenter + 26).text(`before ${splitYearText}: below`);
 
-    this.g.quad.bl
-      .attr("x", xLeftCenter)
-      .attr("y", yBottomCenter)
-      .text(pct(counts.left.bottomRate));
+    this.g.quad.tr.attr("x", xRightCenter).attr("y", yTopCenter).text(pct(counts.right.topRate));
+    this.g.quad.trSub.attr("x", xRightCenter).attr("y", yTopCenter + 26).text(`${splitYearText}+ : ${counts.right.top}/${counts.right.total}`);
 
-    this.g.quad.blSub
-      .attr("x", xLeftCenter)
-      .attr("y", yBottomCenter + 26)
-      .text(`before ${splitYearText}: below`);
-
-    this.g.quad.tr
-      .attr("x", xRightCenter)
-      .attr("y", yTopCenter)
-      .text(pct(counts.right.topRate));
-
-    this.g.quad.trSub
-      .attr("x", xRightCenter)
-      .attr("y", yTopCenter + 26)
-      .text(`${splitYearText}+ : ${counts.right.top}/${counts.right.total}`);
-
-    this.g.quad.br
-      .attr("x", xRightCenter)
-      .attr("y", yBottomCenter)
-      .text(pct(counts.right.bottomRate));
-
-    this.g.quad.brSub
-      .attr("x", xRightCenter)
-      .attr("y", yBottomCenter + 26)
-      .text(`${splitYearText}+ : below`);
+    this.g.quad.br.attr("x", xRightCenter).attr("y", yBottomCenter).text(pct(counts.right.bottomRate));
+    this.g.quad.brSub.attr("x", xRightCenter).attr("y", yBottomCenter + 26).text(`${splitYearText}+ : below`);
   }
 
   enableHorizontalDrag(data, keepVertical = false) {
@@ -456,13 +443,27 @@ if (sceneConfig.threshold != null) {
       .attr("y2", y(this.state.sceneConfig.threshold))
       .call(
         d3.drag().on("drag", (event) => {
-          this.state.sceneConfig.threshold = Math.max(
-            0,
-            Math.min(yMax, y.invert(event.y))
-          );
+          const threshold = Math.max(0, Math.min(yMax, y.invert(event.y)));
+          this.state.sceneConfig.threshold = threshold;
+
+          const yy = y(threshold);
+
+          this.g.hLine
+            .interrupt()
+            .attr("y1", yy)
+            .attr("y2", yy);
+
+          this.g.hLabel
+            .interrupt()
+            .attr("x", margin.left + innerWidth - 6)
+            .attr("y", yy - 8)
+            .text(`${d3.format(".1f")(threshold)} years`);
+
+          this.updateThresholdStyling(threshold);
 
           if (!keepVertical) {
-            this.renderScene("scene4", this.state.sceneConfig, data);
+            const stats = countSurvivors(data, threshold);
+            this.summaryContainer.innerHTML = buildSummaryThreshold(threshold, stats);
           } else {
             this.renderScene("scene6", this.state.sceneConfig, data);
           }
@@ -487,10 +488,7 @@ if (sceneConfig.threshold != null) {
             Math.max(+minDate, Math.min(+maxDate, +date))
           );
 
-          this.state.sceneConfig.splitYear = +d3.timeFormat("%Y")(
-            this.state.sceneConfig.splitDate
-          );
-
+          this.state.sceneConfig.splitYear = +d3.timeFormat("%Y")(this.state.sceneConfig.splitDate);
           this.renderScene("scene6", this.state.sceneConfig, data);
         })
       );
