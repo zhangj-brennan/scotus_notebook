@@ -152,7 +152,8 @@ export class ScatterSurvivalChart {
 
     this.g.vLine = this.svg.append("line")
       .attr("class", "threshold-line vertical")
-      .style("display", "none");
+      .style("display", "none")
+      .style("opacity", 1);
 
     this.g.hHit = this.svg.append("line")
       .attr("class", "drag-hit")
@@ -169,7 +170,8 @@ export class ScatterSurvivalChart {
 
     this.g.vLabel = this.svg.append("text")
       .attr("class", "annotation")
-      .attr("text-anchor", "start");
+      .attr("text-anchor", "start")
+      .style("opacity", 1);
 
     this.g.medianLine = this.svg.append("line")
       .attr("class", "threshold-line median-line")
@@ -218,7 +220,7 @@ export class ScatterSurvivalChart {
 
   hideOverlays() {
     this.g.hLine.interrupt().style("display", "none").style("opacity", 1);
-    this.g.vLine.interrupt().style("display", "none");
+    this.g.vLine.interrupt().style("display", "none").style("opacity", 1);
     this.g.hHit.interrupt().style("display", "none");
     this.g.vHit.interrupt().style("display", "none");
 
@@ -226,7 +228,7 @@ export class ScatterSurvivalChart {
     this.g.medianLabel.interrupt().text("");
 
     this.g.hLabel.interrupt().text("").style("opacity", 1);
-    this.g.vLabel.interrupt().text("");
+    this.g.vLabel.interrupt().text("").style("opacity", 1);
 
     this.g.dots.selectAll("circle")
       .interrupt()
@@ -285,6 +287,7 @@ export class ScatterSurvivalChart {
 
   renderScene(sceneName, sceneConfig, data) {
     const prevScene = this.state?.scene || null;
+    const prevSceneConfig = this.state?.sceneConfig || null;
     this.state = { scene: sceneName, sceneConfig };
 
     const { x, y, margin, innerWidth, innerHeight } = this.scales;
@@ -301,11 +304,17 @@ export class ScatterSurvivalChart {
 
     if (sceneConfig.threshold != null) {
       const yy = y(sceneConfig.threshold);
-      const fadeInOnly = prevScene !== "scene2" && prevScene !== "scene3" && (sceneName === "scene2" || sceneName === "scene3");
-      const animateMove = (prevScene === "scene2" && sceneName === "scene3") || (prevScene === "scene3" && sceneName === "scene2");
+      const prevThreshold = prevSceneConfig?.threshold;
+      const shouldAnimateThreshold =
+        prevScene &&
+        prevScene !== sceneName &&
+        prevThreshold != null &&
+        sceneName !== "scene4" &&
+        sceneName !== "scene6";
 
       this.g.hLine
         .interrupt()
+        .style("display", null)
         .attr("x1", margin.left)
         .attr("x2", margin.left + innerWidth);
 
@@ -313,26 +322,8 @@ export class ScatterSurvivalChart {
         .interrupt()
         .text(`${d3.format(".1f")(sceneConfig.threshold)} years`);
 
-      if (fadeInOnly) {
+      if (shouldAnimateThreshold) {
         this.g.hLine
-          .attr("y1", yy)
-          .attr("y2", yy)
-          .style("display", null)
-          .style("opacity", 0)
-          .transition()
-          .duration(300)
-          .style("opacity", 1);
-
-        this.g.hLabel
-          .attr("x", margin.left + innerWidth - 6)
-          .attr("y", yy - 8)
-          .style("opacity", 0)
-          .transition()
-          .duration(300)
-          .style("opacity", 1);
-      } else if (animateMove) {
-        this.g.hLine
-          .style("display", null)
           .transition()
           .duration(700)
           .ease(d3.easeCubicInOut)
@@ -347,13 +338,10 @@ export class ScatterSurvivalChart {
           .attr("y", yy - 8);
       } else {
         this.g.hLine
-          .style("display", null)
-          .style("opacity", 1)
           .attr("y1", yy)
           .attr("y2", yy);
 
         this.g.hLabel
-          .style("opacity", 1)
           .attr("x", margin.left + innerWidth - 6)
           .attr("y", yy - 8);
       }
@@ -361,18 +349,46 @@ export class ScatterSurvivalChart {
 
     if (sceneConfig.splitDate) {
       const xx = x(sceneConfig.splitDate);
+      const prevSplit = prevSceneConfig?.splitDate;
+      const shouldAnimateSplit =
+        prevScene &&
+        prevScene !== sceneName &&
+        prevSplit &&
+        sceneName !== "scene6";
 
       this.g.vLine
+        .interrupt()
         .style("display", null)
-        .attr("x1", xx)
-        .attr("x2", xx)
         .attr("y1", margin.top)
         .attr("y2", margin.top + innerHeight);
 
       this.g.vLabel
-        .attr("x", xx + 6)
-        .attr("y", margin.top + 16)
+        .interrupt()
         .text(d3.timeFormat("%Y")(sceneConfig.splitDate));
+
+      if (shouldAnimateSplit) {
+        this.g.vLine
+          .transition()
+          .duration(700)
+          .ease(d3.easeCubicInOut)
+          .attr("x1", xx)
+          .attr("x2", xx);
+
+        this.g.vLabel
+          .transition()
+          .duration(700)
+          .ease(d3.easeCubicInOut)
+          .attr("x", xx + 6)
+          .attr("y", margin.top + 16);
+      } else {
+        this.g.vLine
+          .attr("x1", xx)
+          .attr("x2", xx);
+
+        this.g.vLabel
+          .attr("x", xx + 6)
+          .attr("y", margin.top + 16);
+      }
     }
 
     if (sceneName === "scene2" || sceneName === "scene3") {
@@ -434,13 +450,14 @@ export class ScatterSurvivalChart {
 
   enableHorizontalDrag(data, keepVertical = false) {
     const { y, margin, innerWidth, yMax } = this.scales;
+    const initialY = y(this.state.sceneConfig.threshold);
 
     this.g.hHit
       .style("display", null)
       .attr("x1", margin.left)
       .attr("x2", margin.left + innerWidth)
-      .attr("y1", y(this.state.sceneConfig.threshold))
-      .attr("y2", y(this.state.sceneConfig.threshold))
+      .attr("y1", initialY)
+      .attr("y2", initialY)
       .call(
         d3.drag().on("drag", (event) => {
           const threshold = Math.max(0, Math.min(yMax, y.invert(event.y)));
@@ -449,6 +466,11 @@ export class ScatterSurvivalChart {
           const yy = y(threshold);
 
           this.g.hLine
+            .interrupt()
+            .attr("y1", yy)
+            .attr("y2", yy);
+
+          this.g.hHit
             .interrupt()
             .attr("y1", yy)
             .attr("y2", yy);
