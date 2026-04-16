@@ -424,6 +424,11 @@ svg{
 .annotation.is-draggable-label{
   font-family:"BentonStrong", Arial, sans-serif;
 }
+.text-column::after{
+  content:"";
+  display:block;
+  height:120vh;
+}
 
 @media (max-width: 700px){
   .chart-controls-main{

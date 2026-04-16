@@ -304,23 +304,24 @@ export class ScatterSurvivalChart {
     Object.values(this.g.quad).forEach(node => node.interrupt().text(""));
     this.hintContainer.textContent = "";
   }
+
   drawMedianLine(median) {
-  const { y, margin, innerWidth } = this.scales;
-  const yy = y(median);
+    const { y, margin, innerWidth } = this.scales;
+    const yy = y(median);
 
-  this.g.medianLine
-    .style("display", null)
-    .attr("x1", margin.left)
-    .attr("x2", margin.left + innerWidth)
-    .attr("y1", yy)
-    .attr("y2", yy);
+    this.g.medianLine
+      .style("display", null)
+      .attr("x1", margin.left)
+      .attr("x2", margin.left + innerWidth)
+      .attr("y1", yy)
+      .attr("y2", yy);
 
-  this.g.medianLabel
-    .style("display", null)
-    .attr("x", margin.left + innerWidth - 6)
-    .attr("y", yy - 8)
-    .text(`Median: ${d3.format(".1f")(median)} years`);
-}
+    this.g.medianLabel
+      .style("display", null)
+      .attr("x", margin.left + innerWidth - 6)
+      .attr("y", yy - 8)
+      .text(`Median: ${d3.format(".1f")(median)} years`);
+  }
 
   updateThresholdStyling(threshold) {
     this.g.dots.selectAll("circle")
@@ -339,13 +340,47 @@ export class ScatterSurvivalChart {
       `);
     this.moveTooltip(event);
   }
+moveTooltip(event) {
+  const [x, y] = d3.pointer(event, this.container);
 
-  moveTooltip(event) {
-    const [x, y] = d3.pointer(event, this.container);
-    this.tooltip
-      .style("left", `${x + 14}px`)
-      .style("top", `${y - 14}px`);
+  const containerRect = this.container.getBoundingClientRect();
+  const tooltipNode = this.tooltip.node();
+  const tooltipRect = tooltipNode.getBoundingClientRect();
+
+  const pad = 12;
+  const offsetX = 14;
+  const offsetY = 14;
+
+  let left = x + offsetX;
+  let top = y - offsetY - tooltipRect.height;
+
+  const maxLeft = containerRect.width - tooltipRect.width - pad;
+  const maxTop = containerRect.height - tooltipRect.height - pad;
+
+  if (left > maxLeft) {
+    left = x - tooltipRect.width - offsetX;
   }
+
+  if (left < pad) {
+    left = pad;
+  }
+
+  if (top < pad) {
+    top = y + offsetY;
+  }
+
+  if (top > maxTop) {
+    top = maxTop;
+  }
+
+  if (top < pad) {
+    top = pad;
+  }
+
+  this.tooltip
+    .style("left", `${left}px`)
+    .style("top", `${top}px`);
+}
 
   hideTooltip() {
     this.tooltip.style("display", "none");
@@ -478,6 +513,66 @@ export class ScatterSurvivalChart {
     this.state.sceneConfig.threshold = clampedTo;
   }
 
+  updateScene6View(data) {
+    const { margin, innerWidth, innerHeight, x, y } = this.scales;
+    const { threshold, splitDate, splitYear } = this.state.sceneConfig;
+
+    const yy = y(threshold);
+    const xx = x(splitDate);
+
+    this.g.hLine
+      .interrupt()
+      .style("display", null)
+      .attr("x1", margin.left)
+      .attr("x2", margin.left + innerWidth)
+      .attr("y1", yy)
+      .attr("y2", yy);
+
+    this.g.hHit
+      .interrupt()
+      .style("display", null)
+      .attr("x1", margin.left)
+      .attr("x2", margin.left + innerWidth)
+      .attr("y1", yy)
+      .attr("y2", yy);
+
+    this.g.hLabel
+      .interrupt()
+      .attr("x", margin.left + innerWidth - 6)
+      .attr("y", yy - 8)
+      .text(`${d3.format(".1f")(threshold)} years`);
+
+    this.g.vLine
+      .interrupt()
+      .style("display", null)
+      .attr("y1", margin.top)
+      .attr("y2", margin.top + innerHeight)
+      .attr("x1", xx)
+      .attr("x2", xx);
+
+    this.g.vHit
+      .interrupt()
+      .style("display", null)
+      .attr("y1", margin.top)
+      .attr("y2", margin.top + innerHeight)
+      .attr("x1", xx)
+      .attr("x2", xx);
+
+    this.g.vLabel
+      .interrupt()
+      .attr("x", xx + 6)
+      .attr("y", margin.top + 16)
+      .text(d3.timeFormat("%Y")(splitDate));
+
+    this.setHorizontalLineInteractive(true);
+    this.setVerticalLineInteractive(true);
+    this.updateThresholdStyling(threshold);
+
+    const counts = splitCounts(data, splitDate, threshold);
+    this.summaryContainer.innerHTML = buildSummarySplit(splitYear, threshold, counts);
+    this.renderQuadrants(counts, splitDate, threshold);
+  }
+
   renderScene(sceneName, sceneConfig, data) {
     const prevScene = this.state?.scene || null;
     const prevSceneConfig = this.state?.sceneConfig || null;
@@ -488,7 +583,7 @@ export class ScatterSurvivalChart {
 
     if (sceneName === "scene1") {
       const median = d3.median(data, d => d.tenureYears) ?? 0;
-      const threshold = sceneConfig.threshold ?? 10; // fallback if needed
+      const threshold = sceneConfig.threshold ?? 10;
       const stats = countSurvivors(data, threshold);
 
       this.summaryContainer.innerHTML = `
@@ -497,13 +592,7 @@ export class ScatterSurvivalChart {
         <div>${stats.survived} out of ${stats.total} Justices, or 50% of all justices have served on the court over ${d3.format(".1f")(median)} years</div>
       `;
 
-        this.drawMedianLine(median);
-
-      // if (sceneConfig.threshold != null) {
-      //   this.setThresholdPosition(sceneConfig.threshold);
-      //   this.updateThresholdStyling(sceneConfig.threshold);
-      // }
-
+      this.drawMedianLine(median);
       return;
     }
 
@@ -641,6 +730,28 @@ export class ScatterSurvivalChart {
       this.setThresholdPosition(sceneConfig.threshold);
       this.setHorizontalLineInteractive(true);
       this.setVerticalLineInteractive(true);
+
+      const xx = x(sceneConfig.splitDate);
+      this.g.vLine
+        .style("display", null)
+        .attr("y1", margin.top)
+        .attr("y2", margin.top + innerHeight)
+        .attr("x1", xx)
+        .attr("x2", xx);
+
+      this.g.vHit
+        .style("display", null)
+        .attr("y1", margin.top)
+        .attr("y2", margin.top + innerHeight)
+        .attr("x1", xx)
+        .attr("x2", xx);
+
+      this.g.vLabel
+        .style("display", null)
+        .attr("x", xx + 6)
+        .attr("y", margin.top + 16)
+        .text(d3.timeFormat("%Y")(sceneConfig.splitDate));
+
       this.enableHorizontalDrag(data, true);
       this.enableVerticalDrag(data);
     }
@@ -650,24 +761,39 @@ export class ScatterSurvivalChart {
     const { x, y, margin, innerWidth, innerHeight } = this.scales;
     const xx = x(splitDate);
     const yy = y(threshold);
-    const splitYearText = d3.timeFormat("%Y")(splitDate);
 
     const xLeftCenter = (margin.left + xx) / 2;
     const xRightCenter = (xx + margin.left + innerWidth) / 2;
     const yTopCenter = (margin.top + yy) / 2;
     const yBottomCenter = (yy + margin.top + innerHeight) / 2;
 
-    this.g.quad.tl.attr("x", xLeftCenter).attr("y", yTopCenter).text(pct(counts.left.topRate));
-   // this.g.quad.tlSub.attr("x", xLeftCenter).attr("y", yTopCenter + 26).text(`before ${splitYearText}: ${counts.left.top}/${counts.left.total}`);
+          // LEFT SIDE (default color)
+      this.g.quad.tl
+        .attr("x", xLeftCenter)
+        .attr("y", yTopCenter)
+        .text(pct(counts.left.topRate))
+        .style("fill", "#000");
 
-    this.g.quad.bl.attr("x", xLeftCenter).attr("y", yBottomCenter).text(pct(counts.left.bottomRate));
-    //this.g.quad.blSub.attr("x", xLeftCenter).attr("y", yBottomCenter + 26).text(`before ${splitYearText}: below`);
+      this.g.quad.bl
+        .attr("x", xLeftCenter)
+        .attr("y", yBottomCenter)
+        .text(pct(counts.left.bottomRate))
+        .style("fill", "#000");
 
-    this.g.quad.tr.attr("x", xRightCenter).attr("y", yTopCenter).text(pct(counts.right.topRate));
-   // this.g.quad.trSub.attr("x", xRightCenter).attr("y", yTopCenter + 26).text(`${splitYearText}+ : ${counts.right.top}/${counts.right.total}`);
+      // RIGHT SIDE (highlight color)
+      const rightColor = "#ED1C24"; // or your accent color
 
-    this.g.quad.br.attr("x", xRightCenter).attr("y", yBottomCenter).text(pct(counts.right.bottomRate));
-    //this.g.quad.brSub.attr("x", xRightCenter).attr("y", yBottomCenter + 26).text(`${splitYearText}+ : below`);
+      this.g.quad.tr
+        .attr("x", xRightCenter)
+        .attr("y", yTopCenter)
+        .text(pct(counts.right.topRate))
+        .style("fill", rightColor);
+
+      this.g.quad.br
+        .attr("x", xRightCenter)
+        .attr("y", yBottomCenter)
+        .text(pct(counts.right.bottomRate))
+        .style("fill", rightColor);
   }
 
   enableHorizontalDrag(data, keepVertical = false) {
@@ -709,7 +835,7 @@ export class ScatterSurvivalChart {
             const stats = countSurvivors(data, threshold);
             this.summaryContainer.innerHTML = buildSummaryThreshold(threshold, stats);
           } else {
-            this.renderScene("scene6", this.state.sceneConfig, data);
+            this.updateScene6View(data);
           }
         })
       );
@@ -733,7 +859,7 @@ export class ScatterSurvivalChart {
           );
 
           this.state.sceneConfig.splitYear = +d3.timeFormat("%Y")(this.state.sceneConfig.splitDate);
-          this.renderScene("scene6", this.state.sceneConfig, data);
+          this.updateScene6View(data);
         })
       );
   }

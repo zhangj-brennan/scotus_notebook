@@ -193,25 +193,20 @@ function setupScroller() {
   const steps = Array.from(document.querySelectorAll(".step"));
 
   function onScroll() {
-    const targetY = window.innerHeight * 0.42;
+    const triggerY = window.innerHeight * 0.20;
+    let activeStep = steps[0];
 
-    let bestStep = null;
-    let bestDistance = Infinity;
-
-    steps.forEach(step => {
+    for (const step of steps) {
       const rect = step.getBoundingClientRect();
-      const stepCenter = rect.top + rect.height / 2;
-      const distance = Math.abs(stepCenter - targetY);
 
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        bestStep = step;
+      if (rect.top <= triggerY) {
+        activeStep = step;
+      } else {
+        break;
       }
-    });
+    }
 
-    if (!bestStep) return;
-
-    const nextScene = bestStep.dataset.scene;
+    const nextScene = activeStep.dataset.scene;
 
     if (nextScene !== currentSceneId) {
       currentSceneId = nextScene;
