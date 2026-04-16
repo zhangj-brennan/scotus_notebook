@@ -430,6 +430,30 @@ svg{
   height:120vh;
 }
 
+/* OUTLINE FOR LINE LABELS */
+.annotation{
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+/* STRONGER OUTLINE FOR BIG % NUMBERS */
+.quad-label{
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 6px;
+  stroke-linejoin: round;
+}
+
+/* optional: slightly lighter for sub labels */
+.quad-sub{
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
 @media (max-width: 700px){
   .chart-controls-main{
     align-items:stretch;
