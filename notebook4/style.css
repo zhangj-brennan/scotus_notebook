@@ -453,7 +453,7 @@ svg{
   }
 
   .step:first-child{
-    padding-top:20vh;
+    padding-top:100vh;
   }
 
   .step-inner{
@@ -500,7 +500,7 @@ svg{
   }
 
   .figure-hint{
-    font-size:13px;
+    font-size:14px;
     margin-top:6px;
     position:relative;
     z-index:3;
@@ -515,11 +515,11 @@ svg{
   }
 
   .annotation{
-    font-size:24px;
+    font-size:14px;
   }
 
   .axis text{
-    font-size:11px;
+    font-size:14px;
   }
 
   .chart-tooltip{

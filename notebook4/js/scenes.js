@@ -6,20 +6,21 @@ export function getSceneConfigs() {
     {
       id: "scene1",
       stepLabel: "",
-      stepTitle: "A scatterplot of all SCOTUS justices",
+      stepTitle: "SCOTUS tenures over time",
       stepBody: `
         <p>
         Since 1789, 116 justices have served on the U.S. Supreme Court. Their tenures have varied, with some justices serving multiple decades (the longest being 36.6 years) while other justices have remained on the bench for just over a year.  
         </p><br>
         <p>
-        Overall, median tenure for all Supreme Court justices (excluding the current justices) is 16.5 years, but the large variation makes median tenure noisy. The current justices do not have a large effect on the median time served by a Supreme Court justice because they reflect only nine data points out of a large sample.  </p>
+        Overall, median tenure for all Supreme Court justices (excluding the current justices) is 16.5 years, 
+        but the large variation makes median tenure noisy. 
+        The current justices do not have a large effect on this median because they include largely newly appointed justice with short tenures.  </p>
         <div class="legend">
           <div class="legend-item"><span class="legend-swatch"></span><span>Former justices</span></div>
           <div class="legend-item"><span class="legend-swatch current"></span><span>Current justices</span></div>
         </div>
-        <br>
-        <p>Current justices do not have a large effect on the median time served as a whole. And median age is noisy over time.</p>
-      `
+      `,
+      threshold: CONFIG.sceneThresholds.scene1
     },
     {
       id: "scene2",

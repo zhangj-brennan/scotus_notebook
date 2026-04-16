@@ -29,10 +29,11 @@ export const CONFIG = {
   yAxisMaxPaddingYears: 2,
 
   sceneThresholds: {
+    scene1: 16.3,
     scene2: 10,
     scene3: 20,
-    scene4: 20,
-    scene5: 15,
+    scene4: 15,
+    scene5: 20,
     scene6: 30
   },
 

@@ -81,7 +81,15 @@ export class ScatterSurvivalChart {
     this.drawBase(data);
     this.setupResize(data);
   }
+  setHorizontalLineInteractive(isInteractive) {
+    this.g.hLine.classed("is-draggable", isInteractive);
+    this.g.hLabel.classed("is-draggable-label", isInteractive);
+  }
 
+  setVerticalLineInteractive(isInteractive) {
+    this.g.vLine.classed("is-draggable", isInteractive);
+    this.g.vLabel.classed("is-draggable-label", isInteractive);
+  }
   setupResize(data) {
     window.addEventListener("resize", () => {
       if (this.resizeRaf) cancelAnimationFrame(this.resizeRaf);
@@ -118,10 +126,17 @@ export class ScatterSurvivalChart {
 
   drawBase(data) {
     const { width, height, margin, xTicks, yTicks } = this.chartDims;
+    const isMobile = window.innerWidth <= CONFIG.mobileBreakpoint;
+    const axisFontSize = isMobile ? 24 : 24;
+    const annotationFontSize = isMobile ? 30 : 24;
+    const quadFontSize = isMobile ? 24 : 20;
+    const quadSubFontSize = isMobile ? 30 : 20;
+
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
     const maxYears = d3.max(data, d => d.tenureYears) || 0;
     const yMax = Math.ceil(maxYears + CONFIG.yAxisMaxPaddingYears);
+    
 
     const x = d3.scaleTime()
       .domain(d3.extent(data, d => d.startDate))
@@ -148,7 +163,7 @@ export class ScatterSurvivalChart {
 
     const xGrid = d3.axisBottom(x).ticks(xTicks).tickSize(-innerHeight).tickFormat("");
     const yGrid = d3.axisLeft(y).ticks(yTicks).tickSize(-innerWidth).tickFormat("");
-
+    
     this.svg.append("g")
       .attr("class", "grid")
       .attr("transform", `translate(0,${margin.top + innerHeight})`)
@@ -159,27 +174,32 @@ export class ScatterSurvivalChart {
       .attr("transform", `translate(${margin.left},0)`)
       .call(yGrid);
 
-    this.svg.append("g")
+    const xAxis = this.svg.append("g")
       .attr("class", "axis")
       .attr("transform", `translate(0,${margin.top + innerHeight})`)
       .call(d3.axisBottom(x).ticks(xTicks));
 
-    this.svg.append("g")
+    const yAxis = this.svg.append("g")
       .attr("class", "axis")
       .attr("transform", `translate(${margin.left},0)`)
       .call(d3.axisLeft(y).ticks(yTicks));
 
+    xAxis.selectAll("text").style("font-size", `${axisFontSize}px`);
+    yAxis.selectAll("text").style("font-size", `${axisFontSize}px`);
+
     this.svg.append("text")
       .attr("x", margin.left + innerWidth / 2)
-      .attr("y", height - 10)
+      .attr("y", height - 1)
       .attr("text-anchor", "middle")
       .attr("class", "annotation")
+      .style("font-size", `${annotationFontSize}px`)
       .text("Start date");
 
     this.svg.append("text")
-      .attr("transform", `translate(20, ${margin.top + innerHeight / 2}) rotate(-90)`)
+      .attr("transform", `translate(10, ${margin.top + innerHeight / 2}) rotate(-90)`)
       .attr("text-anchor", "middle")
       .attr("class", "annotation")
+      .style("font-size", `${annotationFontSize}px`)
       .text("Years in office");
 
     this.g.dots = this.svg.append("g");
@@ -205,12 +225,14 @@ export class ScatterSurvivalChart {
     this.g.hLabel = this.svg.append("text")
       .attr("class", "annotation")
       .attr("text-anchor", "end")
-      .style("opacity", 1);
+      .style("opacity", 1)
+      .style("font-size", `${annotationFontSize}px`);
 
     this.g.vLabel = this.svg.append("text")
       .attr("class", "annotation")
       .attr("text-anchor", "start")
-      .style("opacity", 1);
+      .style("opacity", 1)
+      .style("font-size", `${annotationFontSize}px`);
 
     this.g.medianLine = this.svg.append("line")
       .attr("class", "threshold-line median-line")
@@ -218,17 +240,18 @@ export class ScatterSurvivalChart {
 
     this.g.medianLabel = this.svg.append("text")
       .attr("class", "annotation median-label")
-      .attr("text-anchor", "end");
+      .attr("text-anchor", "end")
+      .style("font-size", `${annotationFontSize}px`);
 
     this.g.quad = {
-      tl: this.svg.append("text").attr("class", "quad-label"),
-      tlSub: this.svg.append("text").attr("class", "quad-sub"),
-      bl: this.svg.append("text").attr("class", "quad-label"),
-      blSub: this.svg.append("text").attr("class", "quad-sub"),
-      tr: this.svg.append("text").attr("class", "quad-label"),
-      trSub: this.svg.append("text").attr("class", "quad-sub"),
-      br: this.svg.append("text").attr("class", "quad-label"),
-      brSub: this.svg.append("text").attr("class", "quad-sub")
+      tl: this.svg.append("text").attr("class", "quad-label").style("font-size", `${quadFontSize}px`),
+      tlSub: this.svg.append("text").attr("class", "quad-sub").style("font-size", `${quadSubFontSize}px`),
+      bl: this.svg.append("text").attr("class", "quad-label").style("font-size", `${quadFontSize}px`),
+      blSub: this.svg.append("text").attr("class", "quad-sub").style("font-size", `${quadSubFontSize}px`),
+      tr: this.svg.append("text").attr("class", "quad-label").style("font-size", `${quadFontSize}px`),
+      trSub: this.svg.append("text").attr("class", "quad-sub").style("font-size", `${quadSubFontSize}px`),
+      br: this.svg.append("text").attr("class", "quad-label").style("font-size", `${quadFontSize}px`),
+      brSub: this.svg.append("text").attr("class", "quad-sub").style("font-size", `${quadSubFontSize}px`)
     };
 
     this.renderDots(data);
@@ -277,6 +300,9 @@ export class ScatterSurvivalChart {
 
     Object.values(this.g.quad).forEach(node => node.interrupt().text(""));
     this.hintContainer.textContent = "";
+
+    this.setHorizontalLineInteractive(false);
+this.setVerticalLineInteractive(false);
   }
 
   updateThresholdStyling(threshold) {
@@ -449,6 +475,12 @@ export class ScatterSurvivalChart {
         <span class="big">${d3.format(".1f")(median)} years</span>
         <div>Overall median tenure of the justices shown.</div>
       `;
+
+      if (sceneConfig.threshold != null) {
+        this.setThresholdPosition(sceneConfig.threshold);
+        this.updateThresholdStyling(sceneConfig.threshold);
+      }
+
       return;
     }
 
