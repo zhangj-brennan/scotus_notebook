@@ -13,17 +13,22 @@ const sceneConfigs = getSceneConfigs();
 const els = {
   figureSummary: document.getElementById("figureSummary"),
   figureHint: document.getElementById("figureHint"),
+  figureControls: document.getElementById("figureControls"),
   chart: document.getElementById("figureChart"),
   stepsWrap: document.getElementById("steps")
 };
-
 const toggleMarkup = `
-  <div class="step-toggle">
-    <button class="toggle-btn js-current-toggle" type="button">Hide current justices</button>
-    <button class="toggle-btn js-alito-toggle" type="button">Include Alito</button>
-    <button class="toggle-btn js-thomas-toggle" type="button">Include Thomas</button>
-    <button class="toggle-btn js-roberts-toggle" type="button">Include Roberts</button>
-    <div class="controls-note js-current-note">Showing all justices.</div>
+  <div class="chart-controls">
+    <div class="chart-controls-main">
+      <button class="toggle-btn js-current-toggle" type="button">Hide current justices</button>
+      <div class="controls-note js-current-note">Showing all justices.</div>
+    </div>
+
+    <div class="justice-segment-group js-justice-group" aria-label="Include individual current justices">
+      <button class="toggle-btn segment-btn js-alito-toggle" type="button">Alito</button>
+      <button class="toggle-btn segment-btn js-thomas-toggle" type="button">Thomas</button>
+      <button class="toggle-btn segment-btn js-roberts-toggle" type="button">Roberts</button>
+    </div>
   </div>
 `;
 
@@ -38,7 +43,7 @@ let currentSceneId = null;
 init();
 
 async function init() {
-  if (!els.stepsWrap || !els.chart || !els.figureSummary || !els.figureHint) {
+  if (!els.stepsWrap || !els.chart || !els.figureSummary || !els.figureHint || !els.figureControls) {
     console.warn("Missing required DOM nodes", els);
     return;
   }
@@ -57,7 +62,6 @@ function renderSteps() {
       <div class="step-inner">
         <div class="step-number">${scene.stepLabel || ""}</div>
         <h3>${scene.stepTitle || ""}</h3>
-        <div class="step-toggle-slot"></div>
         ${scene.stepBody || ""}
       </div>
     </article>
@@ -97,11 +101,9 @@ function rerenderFromControls() {
 }
 
 function setupControls() {
-  document.querySelectorAll(".step-toggle-slot").forEach(slot => {
-    slot.innerHTML = toggleMarkup;
-  });
+  els.figureControls.innerHTML = toggleMarkup;
 
-  document.querySelectorAll(".js-current-toggle").forEach(btn => {
+  els.figureControls.querySelectorAll(".js-current-toggle").forEach(btn => {
     btn.addEventListener("click", () => {
       hideCurrent = !hideCurrent;
 
@@ -115,7 +117,7 @@ function setupControls() {
     });
   });
 
-  document.querySelectorAll(".js-alito-toggle").forEach(btn => {
+  els.figureControls.querySelectorAll(".js-alito-toggle").forEach(btn => {
     btn.addEventListener("click", () => {
       if (!hideCurrent) return;
       includeAlito = !includeAlito;
@@ -123,7 +125,7 @@ function setupControls() {
     });
   });
 
-  document.querySelectorAll(".js-thomas-toggle").forEach(btn => {
+  els.figureControls.querySelectorAll(".js-thomas-toggle").forEach(btn => {
     btn.addEventListener("click", () => {
       if (!hideCurrent) return;
       includeThomas = !includeThomas;
@@ -131,7 +133,7 @@ function setupControls() {
     });
   });
 
-  document.querySelectorAll(".js-roberts-toggle").forEach(btn => {
+  els.figureControls.querySelectorAll(".js-roberts-toggle").forEach(btn => {
     btn.addEventListener("click", () => {
       if (!hideCurrent) return;
       includeRoberts = !includeRoberts;
@@ -141,7 +143,6 @@ function setupControls() {
 
   updateControls();
 }
-
 function updateControls() {
   document.querySelectorAll(".js-current-toggle").forEach(btn => {
     btn.textContent = hideCurrent ? "Show all current justices" : "Hide current justices";
@@ -149,21 +150,25 @@ function updateControls() {
   });
 
   document.querySelectorAll(".js-alito-toggle").forEach(btn => {
-    btn.textContent = includeAlito ? "Remove Alito" : "Include Alito";
     btn.classList.toggle("active", includeAlito);
     btn.disabled = !hideCurrent;
+    btn.setAttribute("aria-pressed", includeAlito ? "true" : "false");
   });
 
   document.querySelectorAll(".js-thomas-toggle").forEach(btn => {
-    btn.textContent = includeThomas ? "Remove Thomas" : "Include Thomas";
     btn.classList.toggle("active", includeThomas);
     btn.disabled = !hideCurrent;
+    btn.setAttribute("aria-pressed", includeThomas ? "true" : "false");
   });
 
   document.querySelectorAll(".js-roberts-toggle").forEach(btn => {
-    btn.textContent = includeRoberts ? "Remove Roberts" : "Include Roberts";
     btn.classList.toggle("active", includeRoberts);
     btn.disabled = !hideCurrent;
+    btn.setAttribute("aria-pressed", includeRoberts ? "true" : "false");
+  });
+
+  document.querySelectorAll(".js-justice-group").forEach(group => {
+    group.classList.toggle("is-disabled", !hideCurrent);
   });
 
   let noteText = "Showing all justices.";
@@ -183,10 +188,6 @@ function updateControls() {
     note.textContent = noteText;
   });
 }
-
-//
-// 🔥 NEW SCROLLER (REPLACES INTERSECTION OBSERVER)
-//
 
 function setupScroller() {
   const steps = Array.from(document.querySelectorAll(".step"));
@@ -220,8 +221,6 @@ function setupScroller() {
 
   window.addEventListener("scroll", onScroll, { passive: true });
   window.addEventListener("resize", onScroll);
-
-  // run once on load
   onScroll();
 }
 
