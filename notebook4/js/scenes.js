@@ -6,7 +6,7 @@ export function getSceneConfigs() {
     {
       id: "scene1",
       stepLabel: "",
-      stepTitle: "SCOTUS tenures over time",
+      stepTitle: "SCOTUS tenures vary",
       stepBody: `
         <p>
         Since 1789, 116 justices have served on the U.S. Supreme Court. Their tenures have varied, with some justices serving multiple decades (the longest being 36.6 years) while other justices have remained on the bench for just over a year.  
@@ -25,7 +25,7 @@ export function getSceneConfigs() {
     {
       id: "scene2",
       stepLabel: "",
-      stepTitle: "68% of justices last more than 10 years on the court",
+      stepTitle: "67% of justices last more than 10 years on the court",
       stepBody: `
         <p>Looking at the justices’ survival rate is another helpful data point: how many justices remain after, say, 10 years on the bench?  </p>
         <br>
@@ -36,20 +36,22 @@ export function getSceneConfigs() {
     {
       id: "scene4",
       stepLabel: "",
-      stepTitle: "At 20 years, that rate falls to 40%",
+      stepTitle: "At 15 years, that rate falls by 10%",
       stepBody: `
-        <p>If we adjust the threshold to be 20 years on the bench, the survival rate falls to 40%, or in 	other words, 40% of Supreme Court justices (excluding the current justices) serve for 20 	or more years.  </p>
-        <br><br>
-        <p>You can adjust the threshold by moving the red line up or down. This will tell you the 	survival rate at different points in tenure.  </p>
+        <p>57% of Supreme Court justices serve for 15 or more years.  </p>
+        <br><p>Adjust the threshold by moving the red line up or down. 
+        This will tell you the survival rate at different points in tenure.  </p>
       `,
       threshold: CONFIG.sceneThresholds.scene4
     },
     {
       id: "scene5",
-      stepLabel: "Scene 4",
-      stepTitle: "Justices starting after 1950 are more likely to have long careers",
+      stepLabel: "",
+      stepTitle: "Justices who started in the last 40 years are more likely to have long careers",
       stepBody: `
-        <p>It’s also helpful to look at how the survival rate changes over time. This chart adds that 	extra dimension by splitting the Court's history into 2 time periods: pre-1966 and post-	1966. Before 1966, about half the justices remained 	on the bench for 15 years, and half 	did not. But after 1966, every single justice (excluding the current justices) served for at 	least 15 years.  </p>
+        <p>If we draw a line at 40 years ago in 1966,
+        we see that the length of tenure has changed in the last 40 years.
+        Before 1966, just over half (52%) of justices were on the bench more than 15 years, whereas in more recent years, 81% work at least that long.</p>
       `,
       threshold: CONFIG.sceneThresholds.scene5,
       splitYear: CONFIG.sceneSplitYears.scene5,

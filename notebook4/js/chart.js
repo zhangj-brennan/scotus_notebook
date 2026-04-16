@@ -36,16 +36,15 @@ export function splitCounts(data, splitDate, thresholdYears) {
 
 export function buildSummaryThreshold(threshold, stats) {
   return `
-    <span class="big">${pct1(stats.rate)}</span>
-    <div>At <strong>${d3.format(".1f")(threshold)}</strong> years, <strong>${stats.survived}</strong> out of <strong>${stats.total}</strong> justices stayed at least that long.</div>
-  `;
+    <span class="big">
+    <div>After ${Math.round(threshold)} years, ${stats.survived} out of ${stats.total} justices (${Math.round(stats.rate*100)}%) are still on the court.</div>
+    </span>
+    `;
 }
 
 export function buildSummarySplit(splitYear, threshold, counts) {
   return `
-    <span class="big">${splitYear} split · ${d3.format(".1f")(threshold)} years</span>
-    <div>Before <strong>${splitYear}</strong>, <strong>${counts.left.top}</strong> out of <strong>${counts.left.total}</strong> stayed at least that long: <strong>${pct1(counts.left.topRate)}</strong>.</div>
-    <div style="margin-top:8px;">${splitYear} and after, <strong>${counts.right.top}</strong> out of <strong>${counts.right.total}</strong> did: <strong>${pct1(counts.right.topRate)}</strong>.</div>
+    <span class="big">Before vs. After ${splitYear}:<br> ${Math.round(counts.left.topRate*100)}% vs. ${Math.round(counts.right.topRate*100)}% remain on the bench after ${d3.format(".1f")(threshold)} years</span>
   `;
 }
 
@@ -659,16 +658,16 @@ export class ScatterSurvivalChart {
     const yBottomCenter = (yy + margin.top + innerHeight) / 2;
 
     this.g.quad.tl.attr("x", xLeftCenter).attr("y", yTopCenter).text(pct(counts.left.topRate));
-    this.g.quad.tlSub.attr("x", xLeftCenter).attr("y", yTopCenter + 26).text(`before ${splitYearText}: ${counts.left.top}/${counts.left.total}`);
+   // this.g.quad.tlSub.attr("x", xLeftCenter).attr("y", yTopCenter + 26).text(`before ${splitYearText}: ${counts.left.top}/${counts.left.total}`);
 
     this.g.quad.bl.attr("x", xLeftCenter).attr("y", yBottomCenter).text(pct(counts.left.bottomRate));
-    this.g.quad.blSub.attr("x", xLeftCenter).attr("y", yBottomCenter + 26).text(`before ${splitYearText}: below`);
+    //this.g.quad.blSub.attr("x", xLeftCenter).attr("y", yBottomCenter + 26).text(`before ${splitYearText}: below`);
 
     this.g.quad.tr.attr("x", xRightCenter).attr("y", yTopCenter).text(pct(counts.right.topRate));
-    this.g.quad.trSub.attr("x", xRightCenter).attr("y", yTopCenter + 26).text(`${splitYearText}+ : ${counts.right.top}/${counts.right.total}`);
+   // this.g.quad.trSub.attr("x", xRightCenter).attr("y", yTopCenter + 26).text(`${splitYearText}+ : ${counts.right.top}/${counts.right.total}`);
 
     this.g.quad.br.attr("x", xRightCenter).attr("y", yBottomCenter).text(pct(counts.right.bottomRate));
-    this.g.quad.brSub.attr("x", xRightCenter).attr("y", yBottomCenter + 26).text(`${splitYearText}+ : below`);
+    //this.g.quad.brSub.attr("x", xRightCenter).attr("y", yBottomCenter + 26).text(`${splitYearText}+ : below`);
   }
 
   enableHorizontalDrag(data, keepVertical = false) {

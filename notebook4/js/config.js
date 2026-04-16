@@ -33,8 +33,8 @@ export const CONFIG = {
     scene2: 10,
     scene3: 20,
     scene4: 15,
-    scene5: 20,
-    scene6: 20
+    scene5: 15,
+    scene6: 15
   },
 
   sceneSplitYears: {
