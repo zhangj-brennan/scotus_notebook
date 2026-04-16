@@ -34,12 +34,12 @@ export const CONFIG = {
     scene3: 20,
     scene4: 15,
     scene5: 20,
-    scene6: 30
+    scene6: 20
   },
 
   sceneSplitYears: {
     scene5: 1966,
-    scene6: 1900
+    scene6: 1966,
   }
 };
 

@@ -185,7 +185,7 @@ h1{
 .summary-box .big{
   display:block;
   margin-bottom:4px;
-  font-size:28px;
+  font-size:24px;
   line-height:1;
   font-family:"BentonStrong", Arial, sans-serif;
 }
@@ -402,6 +402,27 @@ svg{
 .justice-segment-group .segment-btn.active{
   background:#000;
   color:#fff;
+}
+
+.threshold-line{
+  stroke:var(--accent);
+  stroke-width:4;
+  stroke-dasharray:7 5;
+  opacity:0.7;
+}
+
+.threshold-line.vertical{
+  stroke:var(--accent2);
+}
+
+.threshold-line.is-draggable{
+  stroke-width:6;
+  opacity:1;
+  stroke-dasharray:10 6;
+}
+
+.annotation.is-draggable-label{
+  font-family:"BentonStrong", Arial, sans-serif;
 }
 
 @media (max-width: 700px){

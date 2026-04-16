@@ -81,15 +81,7 @@ export class ScatterSurvivalChart {
     this.drawBase(data);
     this.setupResize(data);
   }
-  setHorizontalLineInteractive(isInteractive) {
-    this.g.hLine.classed("is-draggable", isInteractive);
-    this.g.hLabel.classed("is-draggable-label", isInteractive);
-  }
 
-  setVerticalLineInteractive(isInteractive) {
-    this.g.vLine.classed("is-draggable", isInteractive);
-    this.g.vLabel.classed("is-draggable-label", isInteractive);
-  }
   setupResize(data) {
     window.addEventListener("resize", () => {
       if (this.resizeRaf) cancelAnimationFrame(this.resizeRaf);
@@ -129,14 +121,13 @@ export class ScatterSurvivalChart {
     const isMobile = window.innerWidth <= CONFIG.mobileBreakpoint;
     const axisFontSize = isMobile ? 24 : 24;
     const annotationFontSize = isMobile ? 30 : 24;
-    const quadFontSize = isMobile ? 24 : 20;
-    const quadSubFontSize = isMobile ? 30 : 20;
+    const quadFontSize = isMobile ? 52 : 40;
+    const quadSubFontSize = isMobile ? 16 : 13;
 
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
     const maxYears = d3.max(data, d => d.tenureYears) || 0;
     const yMax = Math.ceil(maxYears + CONFIG.yAxisMaxPaddingYears);
-    
 
     const x = d3.scaleTime()
       .domain(d3.extent(data, d => d.startDate))
@@ -163,7 +154,7 @@ export class ScatterSurvivalChart {
 
     const xGrid = d3.axisBottom(x).ticks(xTicks).tickSize(-innerHeight).tickFormat("");
     const yGrid = d3.axisLeft(y).ticks(yTicks).tickSize(-innerWidth).tickFormat("");
-    
+
     this.svg.append("g")
       .attr("class", "grid")
       .attr("transform", `translate(0,${margin.top + innerHeight})`)
@@ -189,7 +180,7 @@ export class ScatterSurvivalChart {
 
     this.svg.append("text")
       .attr("x", margin.left + innerWidth / 2)
-      .attr("y", height - 1)
+      .attr("y", height - 2)
       .attr("text-anchor", "middle")
       .attr("class", "annotation")
       .style("font-size", `${annotationFontSize}px`)
@@ -281,14 +272,27 @@ export class ScatterSurvivalChart {
     }
   }
 
+  setHorizontalLineInteractive(isInteractive) {
+    this.g.hLine.classed("is-draggable", isInteractive);
+    this.g.hLabel.classed("is-draggable-label", isInteractive);
+  }
+
+  setVerticalLineInteractive(isInteractive) {
+    this.g.vLine.classed("is-draggable", isInteractive);
+    this.g.vLabel.classed("is-draggable-label", isInteractive);
+  }
+
   hideOverlays() {
+    this.setHorizontalLineInteractive(false);
+    this.setVerticalLineInteractive(false);
+
     this.g.hLine.interrupt().style("display", "none").style("opacity", 1);
     this.g.vLine.interrupt().style("display", "none").style("opacity", 1);
     this.g.hHit.interrupt().style("display", "none");
     this.g.vHit.interrupt().style("display", "none");
 
     this.g.medianLine.interrupt().style("display", "none");
-    this.g.medianLabel.interrupt().text("");
+    this.g.medianLabel.interrupt().style("display", "none").text("");
 
     this.g.hLabel.interrupt().text("").style("opacity", 1);
     this.g.vLabel.interrupt().text("").style("opacity", 1);
@@ -300,10 +304,24 @@ export class ScatterSurvivalChart {
 
     Object.values(this.g.quad).forEach(node => node.interrupt().text(""));
     this.hintContainer.textContent = "";
-
-    this.setHorizontalLineInteractive(false);
-this.setVerticalLineInteractive(false);
   }
+  drawMedianLine(median) {
+  const { y, margin, innerWidth } = this.scales;
+  const yy = y(median);
+
+  this.g.medianLine
+    .style("display", null)
+    .attr("x1", margin.left)
+    .attr("x2", margin.left + innerWidth)
+    .attr("y1", yy)
+    .attr("y2", yy);
+
+  this.g.medianLabel
+    .style("display", null)
+    .attr("x", margin.left + innerWidth - 6)
+    .attr("y", yy - 8)
+    .text(`Median: ${d3.format(".1f")(median)} years`);
+}
 
   updateThresholdStyling(threshold) {
     this.g.dots.selectAll("circle")
@@ -471,15 +489,21 @@ this.setVerticalLineInteractive(false);
 
     if (sceneName === "scene1") {
       const median = d3.median(data, d => d.tenureYears) ?? 0;
+      const threshold = sceneConfig.threshold ?? 10; // fallback if needed
+      const stats = countSurvivors(data, threshold);
+
       this.summaryContainer.innerHTML = `
-        <span class="big">${d3.format(".1f")(median)} years</span>
-        <div>Overall median tenure of the justices shown.</div>
+        <span class="big">Median tenure: ${d3.format(".1f")(median)} years<br>
+        </span>
+        <div>${stats.survived} out of ${stats.total} Justices, or 50% of all justices have served on the court over ${d3.format(".1f")(median)} years</div>
       `;
 
-      if (sceneConfig.threshold != null) {
-        this.setThresholdPosition(sceneConfig.threshold);
-        this.updateThresholdStyling(sceneConfig.threshold);
-      }
+        this.drawMedianLine(median);
+
+      // if (sceneConfig.threshold != null) {
+      //   this.setThresholdPosition(sceneConfig.threshold);
+      //   this.updateThresholdStyling(sceneConfig.threshold);
+      // }
 
       return;
     }
@@ -588,6 +612,7 @@ this.setVerticalLineInteractive(false);
         prevSceneConfig.threshold != null;
 
       this.hintContainer.textContent = "Drag the red dashed line vertically.";
+      this.setHorizontalLineInteractive(true);
 
       if (cameFromThresholdScene) {
         this.animateScene4Bounce(data, prevSceneConfig.threshold, sceneConfig.threshold);
@@ -615,6 +640,8 @@ this.setVerticalLineInteractive(false);
       this.renderQuadrants(counts, sceneConfig.splitDate, sceneConfig.threshold);
       this.hintContainer.textContent = "Drag the red horizontal line and the blue vertical line.";
       this.setThresholdPosition(sceneConfig.threshold);
+      this.setHorizontalLineInteractive(true);
+      this.setVerticalLineInteractive(true);
       this.enableHorizontalDrag(data, true);
       this.enableVerticalDrag(data);
     }
