@@ -33,6 +33,8 @@ const chart = new ScatterSurvivalChart({
   hintContainer: els.figureHint
 });
 
+let currentSceneId = null;
+
 init();
 
 async function init() {
@@ -182,22 +184,45 @@ function updateControls() {
   });
 }
 
+//
+// 🔥 NEW SCROLLER (REPLACES INTERSECTION OBSERVER)
+//
+
 function setupScroller() {
   const steps = Array.from(document.querySelectorAll(".step"));
 
-  const observer = new IntersectionObserver((entries) => {
-    const visible = entries
-      .filter(entry => entry.isIntersecting)
-      .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+  function onScroll() {
+    const targetY = window.innerHeight * 0.42;
 
-    if (!visible) return;
-    activateScene(visible.target.dataset.scene);
-  }, {
-    threshold: [0.2, 0.45, 0.7],
-    rootMargin: "-6% 0px -45% 0px"
-  });
+    let bestStep = null;
+    let bestDistance = Infinity;
 
-  steps.forEach(step => observer.observe(step));
+    steps.forEach(step => {
+      const rect = step.getBoundingClientRect();
+      const stepCenter = rect.top + rect.height / 2;
+      const distance = Math.abs(stepCenter - targetY);
+
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestStep = step;
+      }
+    });
+
+    if (!bestStep) return;
+
+    const nextScene = bestStep.dataset.scene;
+
+    if (nextScene !== currentSceneId) {
+      currentSceneId = nextScene;
+      activateScene(nextScene);
+    }
+  }
+
+  window.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("resize", onScroll);
+
+  // run once on load
+  onScroll();
 }
 
 function activateScene(sceneId) {

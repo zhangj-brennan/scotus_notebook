@@ -1,4 +1,4 @@
-import { CONFIG } from "./config.js";
+import { CONFIG, getChartDimensions } from "./config.js";
 import { pct, pct1 } from "./utils.js";
 
 export function countSurvivors(data, thresholdYears) {
@@ -60,18 +60,18 @@ export class ScatterSurvivalChart {
     this.scales = null;
     this.state = null;
     this.tooltip = null;
-
-    this.scene4PulseTimeout = null;
-    this.scene4HasPlayed = false;
-    this.scene4PulseCancelled = false;
+    this.chartDims = getChartDimensions();
+    this.resizeRaf = null;
   }
 
   init(data) {
     d3.select(this.container).html("");
 
+    this.chartDims = getChartDimensions(window.innerWidth);
+
     this.svg = d3.select(this.container)
       .append("svg")
-      .attr("viewBox", `0 0 ${CONFIG.chart.width} ${CONFIG.chart.height}`);
+      .attr("viewBox", `0 0 ${this.chartDims.width} ${this.chartDims.height}`);
 
     this.tooltip = d3.select(this.container)
       .append("div")
@@ -79,10 +79,45 @@ export class ScatterSurvivalChart {
       .style("display", "none");
 
     this.drawBase(data);
+    this.setupResize(data);
+  }
+
+  setupResize(data) {
+    window.addEventListener("resize", () => {
+      if (this.resizeRaf) cancelAnimationFrame(this.resizeRaf);
+
+      this.resizeRaf = requestAnimationFrame(() => {
+        const nextDims = getChartDimensions(window.innerWidth);
+        const changed =
+          nextDims.width !== this.chartDims.width ||
+          nextDims.height !== this.chartDims.height;
+
+        if (!changed) return;
+
+        this.chartDims = nextDims;
+        d3.select(this.container).html("");
+
+        this.svg = d3.select(this.container)
+          .append("svg")
+          .attr("viewBox", `0 0 ${this.chartDims.width} ${this.chartDims.height}`);
+
+        this.tooltip = d3.select(this.container)
+          .append("div")
+          .attr("class", "chart-tooltip")
+          .style("display", "none");
+
+        this.g = {};
+        this.drawBase(data);
+
+        if (this.state) {
+          this.renderScene(this.state.scene, this.state.sceneConfig, data);
+        }
+      });
+    });
   }
 
   drawBase(data) {
-    const { width, height, margin } = CONFIG.chart;
+    const { width, height, margin, xTicks, yTicks } = this.chartDims;
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
     const maxYears = d3.max(data, d => d.tenureYears) || 0;
@@ -111,8 +146,8 @@ export class ScatterSurvivalChart {
       maxDate: d3.max(data, d => d.startDate)
     };
 
-    const xGrid = d3.axisBottom(x).ticks(8).tickSize(-innerHeight).tickFormat("");
-    const yGrid = d3.axisLeft(y).ticks(6).tickSize(-innerWidth).tickFormat("");
+    const xGrid = d3.axisBottom(x).ticks(xTicks).tickSize(-innerHeight).tickFormat("");
+    const yGrid = d3.axisLeft(y).ticks(yTicks).tickSize(-innerWidth).tickFormat("");
 
     this.svg.append("g")
       .attr("class", "grid")
@@ -127,12 +162,12 @@ export class ScatterSurvivalChart {
     this.svg.append("g")
       .attr("class", "axis")
       .attr("transform", `translate(0,${margin.top + innerHeight})`)
-      .call(d3.axisBottom(x).ticks(8));
+      .call(d3.axisBottom(x).ticks(xTicks));
 
     this.svg.append("g")
       .attr("class", "axis")
       .attr("transform", `translate(${margin.left},0)`)
-      .call(d3.axisLeft(y).ticks(6));
+      .call(d3.axisLeft(y).ticks(yTicks));
 
     this.svg.append("text")
       .attr("x", margin.left + innerWidth / 2)
@@ -202,6 +237,7 @@ export class ScatterSurvivalChart {
 
   renderDots(data) {
     const { x, y } = this.scales;
+    const r = this.chartDims.pointRadius;
 
     this.g.dots.selectAll("circle")
       .data(data, d => `${d.name}-${+d.startDate}-${d.days}`)
@@ -209,7 +245,7 @@ export class ScatterSurvivalChart {
       .attr("class", d => d.isCurrent ? "dot current" : "dot")
       .attr("cx", d => x(d.startDate))
       .attr("cy", d => y(d.tenureYears))
-      .attr("r", CONFIG.pointRadius)
+      .attr("r", r)
       .on("mouseenter", (event, d) => this.showTooltip(event, d))
       .on("mousemove", (event) => this.moveTooltip(event))
       .on("mouseleave", () => this.hideTooltip());
@@ -222,22 +258,7 @@ export class ScatterSurvivalChart {
     }
   }
 
-  clearScene4Pulse() {
-    this.scene4PulseCancelled = true;
-
-    if (this.scene4PulseTimeout) {
-      clearTimeout(this.scene4PulseTimeout);
-      this.scene4PulseTimeout = null;
-    }
-
-    if (this.g.hLine) this.g.hLine.interrupt();
-    if (this.g.hHit) this.g.hHit.interrupt();
-    if (this.g.hLabel) this.g.hLabel.interrupt();
-  }
-
   hideOverlays() {
-    this.clearScene4Pulse();
-
     this.g.hLine.interrupt().style("display", "none").style("opacity", 1);
     this.g.vLine.interrupt().style("display", "none").style("opacity", 1);
     this.g.hHit.interrupt().style("display", "none");
@@ -258,139 +279,10 @@ export class ScatterSurvivalChart {
     this.hintContainer.textContent = "";
   }
 
-  drawMedianLine(median) {
-    const { y, margin, innerWidth } = this.scales;
-    const yy = y(median);
-
-    this.g.medianLine
-      .style("display", null)
-      .attr("x1", margin.left)
-      .attr("x2", margin.left + innerWidth)
-      .attr("y1", yy)
-      .attr("y2", yy);
-
-    this.g.medianLabel
-      .attr("x", margin.left + innerWidth - 6)
-      .attr("y", yy - 8)
-      .text(`Median: ${d3.format(".1f")(median)} years`);
-  }
-
   updateThresholdStyling(threshold) {
     this.g.dots.selectAll("circle")
       .classed("above-threshold", d => d.tenureYears >= threshold)
       .classed("below-threshold", d => d.tenureYears < threshold);
-  }
-
-  setThresholdPosition(threshold) {
-    const { y, margin, innerWidth } = this.scales;
-    const yy = y(threshold);
-
-    this.g.hLine
-      .interrupt()
-      .attr("x1", margin.left)
-      .attr("x2", margin.left + innerWidth)
-      .attr("y1", yy)
-      .attr("y2", yy);
-
-    this.g.hHit
-      .interrupt()
-      .attr("x1", margin.left)
-      .attr("x2", margin.left + innerWidth)
-      .attr("y1", yy)
-      .attr("y2", yy);
-
-    this.g.hLabel
-      .interrupt()
-      .attr("x", margin.left + innerWidth - 6)
-      .attr("y", yy - 8)
-      .text(`${d3.format(".1f")(threshold)} years`);
-  }
-
-  updateScene4Summary(data, threshold) {
-    const stats = countSurvivors(data, threshold);
-    this.summaryContainer.innerHTML = buildSummaryThreshold(threshold, stats);
-    this.updateThresholdStyling(threshold);
-  }
-
-  playScene4Pulse(data, delay = 250) {
-    if (this.scene4HasPlayed) return;
-    if (!this.state || this.state.scene !== "scene4") return;
-
-    this.scene4HasPlayed = true;
-    this.scene4PulseCancelled = false;
-
-    const base = this.state.sceneConfig.threshold;
-    const minThreshold = Math.max(0.5, base - 2.5);
-    const maxThreshold = Math.min(this.scales.yMax - 0.5, base + 2.5);
-    const sequence = [minThreshold, maxThreshold, base];
-    const duration = 550;
-
-    const runStep = (index) => {
-      if (this.scene4PulseCancelled) return;
-      if (!this.state || this.state.scene !== "scene4") return;
-      if (index >= sequence.length) return;
-
-      const nextThreshold = sequence[index];
-      const { y, margin, innerWidth } = this.scales;
-      const yy = y(nextThreshold);
-
-      this.state.sceneConfig.threshold = nextThreshold;
-
-      this.g.hLine
-        .transition()
-        .duration(duration)
-        .ease(d3.easeCubicInOut)
-        .attr("x1", margin.left)
-        .attr("x2", margin.left + innerWidth)
-        .attr("y1", yy)
-        .attr("y2", yy);
-
-      this.g.hHit
-        .transition()
-        .duration(duration)
-        .ease(d3.easeCubicInOut)
-        .attr("x1", margin.left)
-        .attr("x2", margin.left + innerWidth)
-        .attr("y1", yy)
-        .attr("y2", yy);
-
-      this.g.hLabel
-        .transition()
-        .duration(duration)
-        .ease(d3.easeCubicInOut)
-        .attr("x", margin.left + innerWidth - 6)
-        .attr("y", yy - 8)
-        .tween("text", () => {
-          const interp = d3.interpolateNumber(
-            +this.g.hLabel.text().replace(/[^\d.-]/g, "") || base,
-            nextThreshold
-          );
-          return (t) => {
-            this.g.hLabel.text(`${d3.format(".1f")(interp(t))} years`);
-          };
-        });
-
-      const startThreshold = index === 0 ? base : sequence[index - 1];
-      d3.transition()
-        .duration(duration)
-        .ease(d3.easeCubicInOut)
-        .tween("scene4-summary", () => {
-          const interp = d3.interpolateNumber(startThreshold, nextThreshold);
-          return (t) => {
-            if (this.scene4PulseCancelled || !this.state || this.state.scene !== "scene4") return;
-            const currentThreshold = interp(t);
-            this.updateScene4Summary(data, currentThreshold);
-          };
-        })
-        .on("end", () => {
-          if (this.scene4PulseCancelled) return;
-          runStep(index + 1);
-        });
-    };
-
-    this.scene4PulseTimeout = setTimeout(() => {
-      runStep(0);
-    }, delay);
   }
 
   showTooltip(event, d) {
@@ -415,115 +307,133 @@ export class ScatterSurvivalChart {
   hideTooltip() {
     this.tooltip.style("display", "none");
   }
-  animateScene4Bounce(data, fromThreshold, toThreshold) {
-  const { y, margin, innerWidth, yMax } = this.scales;
 
-  const clampedTo = Math.max(0, Math.min(yMax, toThreshold));
-  const direction = clampedTo > fromThreshold ? 1 : -1;
-  const overshoot = Math.max(0.6, Math.min(1.4, Math.abs(clampedTo - fromThreshold) * 0.22));
-  const bounceTarget = Math.max(0, Math.min(yMax, clampedTo + direction * overshoot));
-
-  const drawAt = (threshold) => {
+  setThresholdPosition(threshold) {
+    const { y, margin, innerWidth } = this.scales;
     const yy = y(threshold);
 
     this.g.hLine
       .interrupt()
+      .style("display", null)
       .attr("x1", margin.left)
       .attr("x2", margin.left + innerWidth)
       .attr("y1", yy)
-      .attr("y2", yy)
-      .style("display", null);
+      .attr("y2", yy);
 
     this.g.hHit
       .interrupt()
+      .style("display", null)
       .attr("x1", margin.left)
       .attr("x2", margin.left + innerWidth)
       .attr("y1", yy)
-      .attr("y2", yy)
-      .style("display", null);
+      .attr("y2", yy);
 
     this.g.hLabel
       .interrupt()
       .attr("x", margin.left + innerWidth - 6)
       .attr("y", yy - 8)
       .text(`${d3.format(".1f")(threshold)} years`);
-  };
+  }
 
-  const tweenSummary = (a, b, duration, ease) => {
-    d3.transition()
-      .duration(duration)
-      .ease(ease)
-      .tween("scene4-summary", () => {
-        const interp = d3.interpolateNumber(a, b);
+  animateScene4Bounce(data, fromThreshold, toThreshold) {
+    const { y, margin, innerWidth, yMax } = this.scales;
+
+    const clampedTo = Math.max(0, Math.min(yMax, toThreshold));
+    const direction = clampedTo > fromThreshold ? 1 : -1;
+    const overshoot = Math.max(0.6, Math.min(1.4, Math.abs(clampedTo - fromThreshold) * 0.22));
+    const bounceTarget = Math.max(0, Math.min(yMax, clampedTo + direction * overshoot));
+
+    const bounceY = y(bounceTarget);
+    const finalY = y(clampedTo);
+
+    this.g.hLine
+      .style("display", null)
+      .attr("x1", margin.left)
+      .attr("x2", margin.left + innerWidth)
+      .attr("y1", y(fromThreshold))
+      .attr("y2", y(fromThreshold))
+      .transition()
+      .duration(420)
+      .ease(d3.easeBackOut.overshoot(2))
+      .attr("y1", bounceY)
+      .attr("y2", bounceY)
+      .transition()
+      .duration(220)
+      .ease(d3.easeCubicOut)
+      .attr("y1", finalY)
+      .attr("y2", finalY);
+
+    this.g.hHit
+      .style("display", null)
+      .attr("x1", margin.left)
+      .attr("x2", margin.left + innerWidth)
+      .attr("y1", y(fromThreshold))
+      .attr("y2", y(fromThreshold))
+      .transition()
+      .duration(420)
+      .ease(d3.easeBackOut.overshoot(2))
+      .attr("y1", bounceY)
+      .attr("y2", bounceY)
+      .transition()
+      .duration(220)
+      .ease(d3.easeCubicOut)
+      .attr("y1", finalY)
+      .attr("y2", finalY);
+
+    this.g.hLabel
+      .attr("x", margin.left + innerWidth - 6)
+      .attr("y", y(fromThreshold) - 8)
+      .text(`${d3.format(".1f")(fromThreshold)} years`)
+      .transition()
+      .duration(420)
+      .ease(d3.easeBackOut.overshoot(2))
+      .attr("y", bounceY - 8)
+      .tween("text", () => {
+        const interp = d3.interpolateNumber(fromThreshold, bounceTarget);
         return (t) => {
-          const currentThreshold = interp(t);
-          const stats = countSurvivors(data, currentThreshold);
-          this.summaryContainer.innerHTML = buildSummaryThreshold(currentThreshold, stats);
-          this.updateThresholdStyling(currentThreshold);
+          this.g.hLabel.text(`${d3.format(".1f")(interp(t))} years`);
+        };
+      })
+      .transition()
+      .duration(220)
+      .ease(d3.easeCubicOut)
+      .attr("y", finalY - 8)
+      .tween("text", () => {
+        const interp = d3.interpolateNumber(bounceTarget, clampedTo);
+        return (t) => {
+          this.g.hLabel.text(`${d3.format(".1f")(interp(t))} years`);
         };
       });
-  };
 
-  this.state.sceneConfig.threshold = fromThreshold;
-  drawAt(fromThreshold);
+    d3.transition()
+      .duration(420)
+      .ease(d3.easeBackOut.overshoot(2))
+      .tween("scene4-summary-a", () => {
+        const interp = d3.interpolateNumber(fromThreshold, bounceTarget);
+        return (t) => {
+          const threshold = interp(t);
+          const stats = countSurvivors(data, threshold);
+          this.summaryContainer.innerHTML = buildSummaryThreshold(threshold, stats);
+          this.updateThresholdStyling(threshold);
+        };
+      })
+      .on("end", () => {
+        d3.transition()
+          .duration(220)
+          .ease(d3.easeCubicOut)
+          .tween("scene4-summary-b", () => {
+            const interp = d3.interpolateNumber(bounceTarget, clampedTo);
+            return (t) => {
+              const threshold = interp(t);
+              const stats = countSurvivors(data, threshold);
+              this.summaryContainer.innerHTML = buildSummaryThreshold(threshold, stats);
+              this.updateThresholdStyling(threshold);
+            };
+          });
+      });
 
-  const bounceY = y(bounceTarget);
-  const finalY = y(clampedTo);
-
-  this.g.hLine
-    .transition()
-    .duration(420)
-    .ease(d3.easeBackOut.overshoot(2.0))
-    .attr("y1", bounceY)
-    .attr("y2", bounceY)
-    .transition()
-    .duration(220)
-    .ease(d3.easeCubicOut)
-    .attr("y1", finalY)
-    .attr("y2", finalY);
-
-  this.g.hHit
-    .transition()
-    .duration(420)
-    .ease(d3.easeBackOut.overshoot(2.0))
-    .attr("y1", bounceY)
-    .attr("y2", bounceY)
-    .transition()
-    .duration(220)
-    .ease(d3.easeCubicOut)
-    .attr("y1", finalY)
-    .attr("y2", finalY);
-
-  this.g.hLabel
-    .transition()
-    .duration(420)
-    .ease(d3.easeBackOut.overshoot(2.0))
-    .attr("x", margin.left + innerWidth - 6)
-    .attr("y", bounceY - 8)
-    .tween("text", () => {
-      const interp = d3.interpolateNumber(fromThreshold, bounceTarget);
-      return (t) => {
-        this.g.hLabel.text(`${d3.format(".1f")(interp(t))} years`);
-      };
-    })
-    .transition()
-    .duration(220)
-    .ease(d3.easeCubicOut)
-    .attr("y", finalY - 8)
-    .tween("text", () => {
-      const interp = d3.interpolateNumber(bounceTarget, clampedTo);
-      return (t) => {
-        this.g.hLabel.text(`${d3.format(".1f")(interp(t))} years`);
-      };
-    });
-
-  tweenSummary(fromThreshold, bounceTarget, 420, d3.easeBackOut.overshoot(2.0));
-  setTimeout(() => {
-    tweenSummary(bounceTarget, clampedTo, 220, d3.easeCubicOut);
-  }, 420);
-
-  this.state.sceneConfig.threshold = clampedTo;
-}
+    this.state.sceneConfig.threshold = clampedTo;
+  }
 
   renderScene(sceneName, sceneConfig, data) {
     const prevScene = this.state?.scene || null;
@@ -532,10 +442,6 @@ export class ScatterSurvivalChart {
 
     const { x, y, margin, innerWidth, innerHeight } = this.scales;
     this.hideOverlays();
-
-    if (sceneName !== "scene4") {
-      this.scene4HasPlayed = false;
-    }
 
     if (sceneName === "scene1") {
       const median = d3.median(data, d => d.tenureYears) ?? 0;
@@ -546,9 +452,7 @@ export class ScatterSurvivalChart {
       return;
     }
 
-    let thresholdAnimatedIn = false;
-
-    if (sceneConfig.threshold != null) {
+    if (sceneConfig.threshold != null && sceneName !== "scene4") {
       const yy = y(sceneConfig.threshold);
       const prevThreshold = prevSceneConfig?.threshold;
       const shouldAnimateThreshold =
@@ -558,18 +462,14 @@ export class ScatterSurvivalChart {
         sceneName !== "scene6";
 
       this.g.hLine
-        .interrupt()
         .style("display", null)
         .attr("x1", margin.left)
         .attr("x2", margin.left + innerWidth);
 
       this.g.hLabel
-        .interrupt()
         .text(`${d3.format(".1f")(sceneConfig.threshold)} years`);
 
       if (shouldAnimateThreshold) {
-        thresholdAnimatedIn = true;
-
         const prevY = y(prevThreshold);
 
         this.g.hLine
@@ -587,7 +487,6 @@ export class ScatterSurvivalChart {
           .transition()
           .duration(700)
           .ease(d3.easeCubicInOut)
-          .attr("x", margin.left + innerWidth - 6)
           .attr("y", yy - 8);
       } else {
         this.g.hLine
@@ -610,13 +509,11 @@ export class ScatterSurvivalChart {
         sceneName !== "scene6";
 
       this.g.vLine
-        .interrupt()
         .style("display", null)
         .attr("y1", margin.top)
         .attr("y2", margin.top + innerHeight);
 
       this.g.vLabel
-        .interrupt()
         .text(d3.timeFormat("%Y")(sceneConfig.splitDate));
 
       if (shouldAnimateSplit) {
@@ -652,38 +549,26 @@ export class ScatterSurvivalChart {
     }
 
     if (sceneName === "scene4") {
-  const cameFromThresholdScene =
-    prevScene &&
-    prevScene !== sceneName &&
-    prevSceneConfig &&
-    prevSceneConfig.threshold != null;
+      const cameFromThresholdScene =
+        prevScene &&
+        prevScene !== sceneName &&
+        prevSceneConfig &&
+        prevSceneConfig.threshold != null;
 
-  this.hintContainer.textContent = "Drag the red dashed line vertically.";
+      this.hintContainer.textContent = "Drag the red dashed line vertically.";
 
-  if (cameFromThresholdScene) {
-    this.animateScene4Bounce(data, prevSceneConfig.threshold, sceneConfig.threshold);
-  } else {
-    const stats = countSurvivors(data, sceneConfig.threshold);
-    this.summaryContainer.innerHTML = buildSummaryThreshold(sceneConfig.threshold, stats);
-    this.updateThresholdStyling(sceneConfig.threshold);
+      if (cameFromThresholdScene) {
+        this.animateScene4Bounce(data, prevSceneConfig.threshold, sceneConfig.threshold);
+      } else {
+        const stats = countSurvivors(data, sceneConfig.threshold);
+        this.summaryContainer.innerHTML = buildSummaryThreshold(sceneConfig.threshold, stats);
+        this.updateThresholdStyling(sceneConfig.threshold);
+        this.setThresholdPosition(sceneConfig.threshold);
+      }
 
-    const yy = y(sceneConfig.threshold);
-    this.g.hLine
-      .style("display", null)
-      .attr("x1", margin.left)
-      .attr("x2", margin.left + innerWidth)
-      .attr("y1", yy)
-      .attr("y2", yy);
-
-    this.g.hLabel
-      .attr("x", margin.left + innerWidth - 6)
-      .attr("y", yy - 8)
-      .text(`${d3.format(".1f")(sceneConfig.threshold)} years`);
-  }
-
-  this.enableHorizontalDrag(data);
-  return;
-}
+      this.enableHorizontalDrag(data);
+      return;
+    }
 
     if (sceneName === "scene5") {
       const counts = splitCounts(data, sceneConfig.splitDate, sceneConfig.threshold);
@@ -697,6 +582,7 @@ export class ScatterSurvivalChart {
       this.summaryContainer.innerHTML = buildSummarySplit(sceneConfig.splitYear, sceneConfig.threshold, counts);
       this.renderQuadrants(counts, sceneConfig.splitDate, sceneConfig.threshold);
       this.hintContainer.textContent = "Drag the red horizontal line and the blue vertical line.";
+      this.setThresholdPosition(sceneConfig.threshold);
       this.enableHorizontalDrag(data, true);
       this.enableVerticalDrag(data);
     }
@@ -737,41 +623,37 @@ export class ScatterSurvivalChart {
       .attr("y1", initialY)
       .attr("y2", initialY)
       .call(
-        d3.drag()
-          .on("start", () => {
-            this.clearScene4Pulse();
-          })
-          .on("drag", (event) => {
-            const threshold = Math.max(0, Math.min(yMax, y.invert(event.y)));
-            this.state.sceneConfig.threshold = threshold;
+        d3.drag().on("drag", (event) => {
+          const threshold = Math.max(0, Math.min(yMax, y.invert(event.y)));
+          this.state.sceneConfig.threshold = threshold;
 
-            const yy = y(threshold);
+          const yy = y(threshold);
 
-            this.g.hLine
-              .interrupt()
-              .attr("y1", yy)
-              .attr("y2", yy);
+          this.g.hLine
+            .interrupt()
+            .attr("y1", yy)
+            .attr("y2", yy);
 
-            this.g.hHit
-              .interrupt()
-              .attr("y1", yy)
-              .attr("y2", yy);
+          this.g.hHit
+            .interrupt()
+            .attr("y1", yy)
+            .attr("y2", yy);
 
-            this.g.hLabel
-              .interrupt()
-              .attr("x", margin.left + innerWidth - 6)
-              .attr("y", yy - 8)
-              .text(`${d3.format(".1f")(threshold)} years`);
+          this.g.hLabel
+            .interrupt()
+            .attr("x", margin.left + innerWidth - 6)
+            .attr("y", yy - 8)
+            .text(`${d3.format(".1f")(threshold)} years`);
 
-            this.updateThresholdStyling(threshold);
+          this.updateThresholdStyling(threshold);
 
-            if (!keepVertical) {
-              const stats = countSurvivors(data, threshold);
-              this.summaryContainer.innerHTML = buildSummaryThreshold(threshold, stats);
-            } else {
-              this.renderScene("scene6", this.state.sceneConfig, data);
-            }
-          })
+          if (!keepVertical) {
+            const stats = countSurvivors(data, threshold);
+            this.summaryContainer.innerHTML = buildSummaryThreshold(threshold, stats);
+          } else {
+            this.renderScene("scene6", this.state.sceneConfig, data);
+          }
+        })
       );
   }
 
