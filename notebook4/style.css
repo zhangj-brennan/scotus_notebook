@@ -53,13 +53,14 @@ html,body{
 h1{
   margin:0 0 10px;
   font-family:"BentonStrong", Arial, sans-serif;
-  font-size:38px;
-  line-height:1.02;
+  font-size:24px;
+  line-height:1.6;
+  border-top:2px solid black;
 }
 
 .intro{
   margin:0 0 18px;
-  max-width:900px;
+  max-width:600px;
   font-size:18px;
   color:var(--muted);
 }
@@ -186,7 +187,7 @@ h1{
   display:block;
   margin-bottom:4px;
   font-size:24px;
-  line-height:1;
+  line-height:1.6;
   font-family:"BentonStrong", Arial, sans-serif;
 }
 
@@ -226,7 +227,7 @@ h1{
 
 .step-number{
   margin-bottom:4px;
-  font-size:14px;
+  font-size:18px;
   letter-spacing:.08em;
   text-transform:uppercase;
   color:var(--muted);
@@ -235,7 +236,7 @@ h1{
 
 .step h3{
   margin:0 0 10px;
-  font-size:28px;
+  font-size:24px;
   line-height:1.1;
   font-family:"BentonStrong", Arial, sans-serif;
 }
@@ -339,7 +340,7 @@ svg{
   padding:10px 12px;
   background:rgba(255,255,255,0.97);
   border:1px solid #000;
-  font-size:14px;
+  font-size:18px;
   line-height:1.35;
 }
 
@@ -517,11 +518,11 @@ svg{
   }
 
   .step h3{
-    font-size:22px;
+    font-size:12px;
   }
 
   .step p{
-    font-size:16px;
+    font-size:12px;
     max-width:none;
   }
 
@@ -538,7 +539,7 @@ svg{
   }
 .toggle-btn{
   padding:6px 9px;
-  font-size:12px;
+  font-size:18px;
   border:1.5px solid #000;
 }
 
@@ -546,11 +547,11 @@ svg{
   gap:8px;
 }
   .controls-note{
-    font-size:13px;
+    font-size:18px;
   }
 
   .figure-hint{
-    font-size:14px;
+    font-size:18px;
     margin-top:6px;
     position:relative;
     z-index:3;
@@ -565,7 +566,7 @@ svg{
   }
 
   .annotation{
-    font-size:14px;
+    font-size:18px;
   }
 
   .axis text{

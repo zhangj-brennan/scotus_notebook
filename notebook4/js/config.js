@@ -32,7 +32,7 @@ export const CONFIG = {
     scene1: 16.3,
     scene2: 10,
     scene3: 20,
-    scene4: 15,
+    scene4: 20,
     scene5: 15,
     scene6: 15
   },

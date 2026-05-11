@@ -6,7 +6,7 @@ export function getSceneConfigs() {
     {
       id: "scene1",
       stepLabel: "",
-      stepTitle: "SCOTUS tenures vary",
+      stepTitle: "A scatterplot of all SCOTUS justices ",
       stepBody: `
         <p>
         Since 1789, 116 justices have served on the U.S. Supreme Court. Their tenures have varied, with some justices serving multiple decades (the longest being 36.6 years) while other justices have remained on the bench for just over a year.  
@@ -36,7 +36,7 @@ export function getSceneConfigs() {
     {
       id: "scene4",
       stepLabel: "",
-      stepTitle: "At 15 years, that rate falls by 10%",
+      stepTitle: "At 20 years, the survival rate falls to 40%",
       stepBody: `
         <p>57% of Supreme Court justices serve for 15 or more years.  </p>
         <br><p>Adjust the threshold by moving the red line up or down. 
@@ -47,11 +47,12 @@ export function getSceneConfigs() {
     {
       id: "scene5",
       stepLabel: "",
-      stepTitle: "Justices who started in the last 40 years are more likely to have long careers",
+      stepTitle: "Justices starting after 1950 are more likely to have long careers",
       stepBody: `
         <p>If we draw a line at 40 years ago in 1966,
         we see that the length of tenure has changed in the last 40 years.
-        Before 1966, just over half (52%) of justices were on the bench more than 15 years, whereas in more recent years, 81% work at least that long.</p>
+        Before 1966, just over half (52%) of justices were on the bench more than 15 years, 
+        whereas in more recent years, 100% (excluding current justices) work at least that long.</p>
       `,
       threshold: CONFIG.sceneThresholds.scene5,
       splitYear: CONFIG.sceneSplitYears.scene5,
@@ -59,10 +60,10 @@ export function getSceneConfigs() {
     },
     {
       id: "scene6",
-      stepLabel: "Scene 6",
-      stepTitle: "",
+      stepLabel: "",
+      stepTitle: "Customizable Graph",
       stepBody: `
-        <p>This last graph allows you to adjust both lines: length of tenure and year in the Court’s 	history. This lets you explore how tenure survival changes across different time splits and 	 tenure thresholds. </p>
+        <p>This last graph allows you to adjust both lines: length of tenure and year in the Court’s 	history. This lets you explore how tenure survival changes across different time splits and 	 tenure thresholds.</p>
       `,
       threshold: CONFIG.sceneThresholds.scene6,
       splitYear: CONFIG.sceneSplitYears.scene6,
