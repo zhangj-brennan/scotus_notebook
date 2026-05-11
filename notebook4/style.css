@@ -31,9 +31,6 @@ html,body{
   line-height:1.45;
 }
 
-.page-header{
-  border-bottom:2px solid #000;
-}
 
 .page-inner{
   max-width:var(--panel-max);
