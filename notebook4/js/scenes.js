@@ -67,8 +67,15 @@ export function getSceneConfigs() {
       stepLabel: "",
       stepTitle: "Customizable Graph",
       stepBody: `
-        <p>This last graph allows you to adjust both lines: length of tenure and year in the Court's 	history. This lets you explore how tenure survival changes across different time splits and 	 tenure thresholds.</p>
-      `,
+  
+  <p>This last graph allows you to adjust both lines: length of tenure and year in the Court's history. This lets you explore how tenure survival changes across different time splits and tenure thresholds.</p>
+
+  <div class="step-toggle scene-assumption-controls">
+    <button class="toggle-btn js-assume-current-toggle" type="button">
+      Assume current justices serve at least 15 years
+    </button>
+  </div>
+`,
       threshold: CONFIG.sceneThresholds.scene6,
       splitYear: CONFIG.sceneSplitYears.scene6,
       splitDate: yearDate(CONFIG.sceneSplitYears.scene6)

@@ -8,6 +8,12 @@ let includeAlito = false;
 let includeThomas = false;
 let includeRoberts = false;
 
+let assumeCurrentAtLeast15 = false;
+window.assumeCurrentAtLeast15 = false;
+
+const ASSUMED_CURRENT_MIN_YEARS = 15;
+const DAYS_PER_YEAR = 365.25;
+
 const sceneConfigs = getSceneConfigs();
 
 const els = {
@@ -17,6 +23,7 @@ const els = {
   chart: document.getElementById("figureChart"),
   stepsWrap: document.getElementById("steps")
 };
+
 const toggleMarkup = `
   <div class="chart-controls">
     <div class="chart-controls-main">
@@ -87,17 +94,41 @@ function isIncludedException(d) {
   return false;
 }
 
+function applyCurrentJusticeAssumption(data) {
+  if (!assumeCurrentAtLeast15) return data;
+
+  return data.map(d => {
+    if (!d.isCurrent || d.tenureYears >= ASSUMED_CURRENT_MIN_YEARS) return d;
+
+    return {
+      ...d,
+      days: ASSUMED_CURRENT_MIN_YEARS * DAYS_PER_YEAR,
+      tenureYears: ASSUMED_CURRENT_MIN_YEARS,
+      assumedCurrentMinimum: true
+    };
+  });
+}
+
 function getFilteredData() {
-  return allData.filter(d => {
+  const filtered = allData.filter(d => {
     if (!hideCurrent) return true;
     if (!d.isCurrent) return true;
     return isIncludedException(d);
   });
+
+  return applyCurrentJusticeAssumption(filtered);
 }
 
 function rerenderFromControls() {
   updateControls();
-  chart.updateData(getFilteredData());
+
+  const data = getFilteredData();
+
+  chart.init(data);
+
+  if (currentSceneId) {
+    activateScene(currentSceneId);
+  }
 }
 
 function setupControls() {
@@ -141,12 +172,32 @@ function setupControls() {
     });
   });
 
+  document.querySelectorAll(".js-assume-current-toggle").forEach(btn => {
+  btn.addEventListener("click", () => {
+    assumeCurrentAtLeast15 = !assumeCurrentAtLeast15;
+
+    window.assumeCurrentAtLeast15 = assumeCurrentAtLeast15;
+
+    if (assumeCurrentAtLeast15) {
+      hideCurrent = false;
+    }
+
+    rerenderFromControls();
+  });
+});
+
   updateControls();
 }
+
 function updateControls() {
   document.querySelectorAll(".js-current-toggle").forEach(btn => {
     btn.textContent = hideCurrent ? "Show all current justices" : "Hide current justices";
     btn.classList.toggle("active", hideCurrent);
+  });
+
+  document.querySelectorAll(".js-assume-current-toggle").forEach(btn => {
+    btn.classList.toggle("active", assumeCurrentAtLeast15);
+    btn.setAttribute("aria-pressed", assumeCurrentAtLeast15 ? "true" : "false");
   });
 
   document.querySelectorAll(".js-alito-toggle").forEach(btn => {
@@ -175,6 +226,7 @@ function updateControls() {
 
   if (hideCurrent) {
     const included = [];
+
     if (includeAlito) included.push("Alito");
     if (includeThomas) included.push("Thomas");
     if (includeRoberts) included.push("Roberts");
@@ -182,6 +234,10 @@ function updateControls() {
     noteText = included.length
       ? `Showing former justices, plus ${included.join(", ")}.`
       : "Showing former justices only.";
+  }
+
+  if (assumeCurrentAtLeast15) {
+    noteText += " Current justices under 15 years are charted as 15 years.";
   }
 
   document.querySelectorAll(".js-current-note").forEach(note => {
@@ -192,40 +248,37 @@ function updateControls() {
 function setupScroller() {
   const steps = Array.from(document.querySelectorAll(".step"));
 
-  function onScroll() {
-    const triggerY = window.innerHeight * 0.20;
-    let activeStep = steps[0];
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
 
-    for (const step of steps) {
-      const rect = step.getBoundingClientRect();
+      const sceneId = entry.target.dataset.scene;
 
-      if (rect.top <= triggerY) {
-        activeStep = step;
-      } else {
-        break;
-      }
-    }
+      if (sceneId === currentSceneId) return;
 
-    const nextScene = activeStep.dataset.scene;
+      currentSceneId = sceneId;
 
-    if (nextScene !== currentSceneId) {
-      currentSceneId = nextScene;
-      activateScene(nextScene);
-    }
-  }
+      steps.forEach(step => {
+        step.classList.toggle("is-active", step.dataset.scene === sceneId);
+      });
 
-  window.addEventListener("scroll", onScroll, { passive: true });
-  window.addEventListener("resize", onScroll);
-  onScroll();
+      activateScene(sceneId);
+    });
+  }, {
+    threshold: 0.55
+  });
+
+  steps.forEach(step => observer.observe(step));
 }
 
 function activateScene(sceneId) {
-  document.querySelectorAll(".step").forEach(step => {
-    step.classList.toggle("is-active", step.dataset.scene === sceneId);
-  });
+  const scene = sceneConfigs.find(s => s.id === sceneId);
 
-  const scene = sceneConfigs.find(d => d.id === sceneId);
   if (!scene) return;
 
-  chart.renderScene(scene.id, { ...scene }, getFilteredData());
+  chart.renderScene(
+    scene.id,
+    scene,
+    getFilteredData()
+  );
 }

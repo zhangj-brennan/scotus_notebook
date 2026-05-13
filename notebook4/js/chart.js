@@ -128,11 +128,20 @@ export class ScatterSurvivalChart {
     const maxYears = d3.max(data, d => d.tenureYears) || 0;
     const yMax = Math.ceil(maxYears + CONFIG.yAxisMaxPaddingYears);
 
-    const x = d3.scaleTime()
-      .domain(d3.extent(data, d => d.startDate))
-      .nice()
-      .range([margin.left, margin.left + innerWidth]);
+   const minDate = d3.min(data, d => d.startDate);
 
+let maxDate = d3.max(data, d => d.startDate);
+
+// if assumption mode is active,
+// extend axis through 2040
+if (window.assumeCurrentAtLeast15) {
+  maxDate = new Date(2040, 0, 1);
+}
+
+const x = d3.scaleTime()
+  .domain([minDate, maxDate])
+  .nice()
+  .range([margin.left, margin.left + innerWidth]);
     const y = d3.scaleLinear()
       .domain([0, yMax])
       .nice()
