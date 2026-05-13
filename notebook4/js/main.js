@@ -3,7 +3,7 @@ import { ScatterSurvivalChart } from "./chart.js";
 import { getSceneConfigs } from "./scenes.js";
 
 let allData = [];
-let hideCurrent = false;
+let hideCurrent = true;
 let includeAlito = false;
 let includeThomas = false;
 let includeRoberts = false;
