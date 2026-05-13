@@ -33,6 +33,15 @@ export function splitCounts(data, splitDate, thresholdYears) {
     }
   };
 }
+export function splitMedians(data, splitDate) {
+  const left = data.filter(d => d.startDate < splitDate);
+  const right = data.filter(d => d.startDate >= splitDate);
+
+  return {
+    left: d3.median(left, d => d.tenureYears) ?? 0,
+    right: d3.median(right, d => d.tenureYears) ?? 0
+  };
+}
 
 export function buildSummaryThreshold(threshold, stats) {
   return `
@@ -156,8 +165,8 @@ const x = d3.scaleTime()
       margin,
       innerWidth,
       innerHeight,
-      minDate: d3.min(data, d => d.startDate),
-      maxDate: d3.max(data, d => d.startDate)
+      minDate,
+      maxDate
     };
 
     const xGrid = d3.axisBottom(x).ticks(xTicks).tickSize(-innerHeight).tickFormat("");
@@ -578,8 +587,22 @@ moveTooltip(event) {
     this.updateThresholdStyling(threshold);
 
     const counts = splitCounts(data, splitDate, threshold);
-    this.summaryContainer.innerHTML = buildSummarySplit(splitYear, threshold, counts);
-    this.renderQuadrants(counts, splitDate, threshold);
+const medians = splitMedians(data, splitDate);
+const splitLabel = d3.timeFormat("%Y")(splitDate);
+
+this.summaryContainer.innerHTML = `
+  <span class="big">
+    Before vs. After ${splitLabel}:<br>
+    ${Math.round(counts.left.topRate * 100)}% vs. ${Math.round(counts.right.topRate * 100)}%
+    remain on the bench after ${d3.format(".1f")(threshold)} years
+  </span>
+  <div>
+    Median tenure before ${splitLabel}: <strong>${d3.format(".1f")(medians.left)} years</strong><br>
+    Median tenure after ${splitLabel}: <strong>${d3.format(".1f")(medians.right)} years</strong>
+  </div>
+`;
+
+this.renderQuadrants(counts, splitDate, threshold);
   }
 
   renderScene(sceneName, sceneConfig, data) {
@@ -732,38 +755,41 @@ moveTooltip(event) {
     }
 
     if (sceneName === "scene6") {
-      const counts = splitCounts(data, sceneConfig.splitDate, sceneConfig.threshold);
-      this.summaryContainer.innerHTML = buildSummarySplit(sceneConfig.splitYear, sceneConfig.threshold, counts);
-      this.renderQuadrants(counts, sceneConfig.splitDate, sceneConfig.threshold);
-      this.hintContainer.textContent = "Drag the red horizontal line and the blue vertical line.";
-      this.setThresholdPosition(sceneConfig.threshold);
-      this.setHorizontalLineInteractive(true);
-      this.setVerticalLineInteractive(true);
+  this.hintContainer.textContent =
+    "Drag the red horizontal line and the blue vertical line.";
 
-      const xx = x(sceneConfig.splitDate);
-      this.g.vLine
-        .style("display", null)
-        .attr("y1", margin.top)
-        .attr("y2", margin.top + innerHeight)
-        .attr("x1", xx)
-        .attr("x2", xx);
+  this.setThresholdPosition(sceneConfig.threshold);
 
-      this.g.vHit
-        .style("display", null)
-        .attr("y1", margin.top)
-        .attr("y2", margin.top + innerHeight)
-        .attr("x1", xx)
-        .attr("x2", xx);
+  this.setHorizontalLineInteractive(true);
+  this.setVerticalLineInteractive(true);
 
-      this.g.vLabel
-        .style("display", null)
-        .attr("x", xx + 6)
-        .attr("y", margin.top + 16)
-        .text(d3.timeFormat("%Y")(sceneConfig.splitDate));
+  const xx = x(sceneConfig.splitDate);
 
-      this.enableHorizontalDrag(data, true);
-      this.enableVerticalDrag(data);
-    }
+  this.g.vLine
+    .style("display", null)
+    .attr("y1", margin.top)
+    .attr("y2", margin.top + innerHeight)
+    .attr("x1", xx)
+    .attr("x2", xx);
+
+  this.g.vHit
+    .style("display", null)
+    .attr("y1", margin.top)
+    .attr("y2", margin.top + innerHeight)
+    .attr("x1", xx)
+    .attr("x2", xx);
+
+  this.g.vLabel
+    .style("display", null)
+    .attr("x", xx + 6)
+    .attr("y", margin.top + 16)
+    .text(d3.timeFormat("%Y")(sceneConfig.splitDate));
+
+  this.updateScene6View(data);
+
+  this.enableHorizontalDrag(data, true);
+  this.enableVerticalDrag(data);
+}
   }
 
   renderQuadrants(counts, splitDate, threshold) {
