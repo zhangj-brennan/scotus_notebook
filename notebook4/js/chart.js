@@ -605,6 +605,72 @@ this.summaryContainer.innerHTML = `
 this.renderQuadrants(counts, splitDate, threshold);
   }
 
+  updateMedianSplitView(data) {
+    const { x, margin, innerWidth, innerHeight } = this.scales;
+    const { splitDate } = this.state.sceneConfig;
+
+    const splitLabel = d3.timeFormat("%Y")(splitDate);
+    const medians = splitMedians(data, splitDate);
+    const xx = x(splitDate);
+
+    this.g.vLine
+      .interrupt()
+      .style("display", null)
+      .style("stroke", "var(--accent)")
+      .attr("y1", margin.top)
+      .attr("y2", margin.top + innerHeight)
+      .attr("x1", xx)
+      .attr("x2", xx);
+
+    this.g.vHit
+      .interrupt()
+      .style("display", null)
+      .attr("y1", margin.top)
+      .attr("y2", margin.top + innerHeight)
+      .attr("x1", xx)
+      .attr("x2", xx);
+
+    this.g.vLabel
+      .interrupt()
+      .style("display", null)
+      .attr("x", xx + 6)
+      .attr("y", margin.top + 16)
+      .text(splitLabel);
+
+    const xLeftCenter = (margin.left + xx) / 2;
+    const xRightCenter = (xx + margin.left + innerWidth) / 2;
+    const yCenter = margin.top + innerHeight / 2;
+
+    this.g.quad.tl
+      .attr("x", xLeftCenter)
+      .attr("y", yCenter)
+      .text(`${d3.format(".1f")(medians.left)}`)
+      .style("fill", "#000");
+
+    this.g.quad.tlSub
+      .attr("x", xLeftCenter)
+      .attr("y", yCenter + 38)
+      .text(`Median years before ${splitLabel}`);
+
+    this.g.quad.tr
+      .attr("x", xRightCenter)
+      .attr("y", yCenter)
+      .text(`${d3.format(".1f")(medians.right)}`)
+      .style("fill", "#ED1C24");
+
+    this.g.quad.trSub
+      .attr("x", xRightCenter)
+      .attr("y", yCenter + 38)
+      .text(`Median years after ${splitLabel}`);
+
+    this.summaryContainer.innerHTML = `
+      <span class="big">
+        Median tenure before vs. after ${splitLabel}:<br>
+        ${d3.format(".1f")(medians.left)} years vs. ${d3.format(".1f")(medians.right)} years
+      </span>
+    `;
+  }
+
   renderScene(sceneName, sceneConfig, data) {
     const prevScene = this.state?.scene || null;
     const prevSceneConfig = this.state?.sceneConfig || null;
@@ -625,6 +691,17 @@ this.renderQuadrants(counts, splitDate, threshold);
       `;
 
       this.drawMedianLine(median);
+      return;
+    }
+    if (sceneConfig.medianOnly) {
+      this.updateMedianSplitView(data);
+
+      if (sceneConfig.medianSplitDraggable) {
+        this.hintContainer.textContent = "Drag the red vertical line left or right.";
+        this.setVerticalLineInteractive(true);
+        this.enableMedianVerticalDrag(data);
+      }
+
       return;
     }
 
@@ -686,6 +763,7 @@ this.renderQuadrants(counts, splitDate, threshold);
 
       this.g.vLine
         .style("display", null)
+        .style("stroke", null)
         .attr("y1", margin.top)
         .attr("y2", margin.top + innerHeight);
 
@@ -872,6 +950,29 @@ this.renderQuadrants(counts, splitDate, threshold);
           } else {
             this.updateScene6View(data);
           }
+        })
+      );
+  }
+
+  enableMedianVerticalDrag(data) {
+    const { x, margin, innerHeight, minDate, maxDate } = this.scales;
+
+    this.g.vHit
+      .style("display", null)
+      .attr("y1", margin.top)
+      .attr("y2", margin.top + innerHeight)
+      .attr("x1", x(this.state.sceneConfig.splitDate))
+      .attr("x2", x(this.state.sceneConfig.splitDate))
+      .call(
+        d3.drag().on("drag", (event) => {
+          const date = x.invert(event.x);
+
+          this.state.sceneConfig.splitDate = new Date(
+            Math.max(+minDate, Math.min(+maxDate, +date))
+          );
+
+          this.state.sceneConfig.splitYear = +d3.timeFormat("%Y")(this.state.sceneConfig.splitDate);
+          this.updateMedianSplitView(data);
         })
       );
   }

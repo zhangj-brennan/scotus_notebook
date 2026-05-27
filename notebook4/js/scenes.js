@@ -27,7 +27,7 @@ export function getSceneConfigs() {
       stepLabel: "",
       stepTitle: "67% of justices last more than 10 years on the court",
       stepBody: `
-        <p>Looking at the justices' survival rate is another helpful data point: how many justices remain after, say, 10 years on the bench?  </p>
+        <p>Looking at the justices' durability rate is another helpful data point: how many justices remain after, say, 10 years on the bench?  </p>
         <br>
         <p>The horizontal line at the 10-year mark divides the justices into two groups: 
         the group above the line are the justices that remained on the bench 
@@ -40,11 +40,11 @@ export function getSceneConfigs() {
     {
       id: "scene4",
       stepLabel: "",
-      stepTitle: "At 20 years, the survival rate falls to 40%",
+      stepTitle: "At 20 years, the durability rate falls to 40%",
       stepBody: `
-        <p>If we adjust the threshold to be 20 years on the bench, the survival rate falls to 40%, or in 	other words, 40% of Supreme Court justices (excluding the current justices) serve for 20 	or more years. </p>
+        <p>If we adjust the threshold to be 20 years on the bench, the durability rate falls to 40%, or in 	other words, 40% of Supreme Court justices (excluding the current justices) serve for 20 	or more years. </p>
         <br><p>Adjust the threshold by moving the red line up or down. 
-        This will tell you the survival rate at different points in tenure.  </p>
+        This will tell you the durability rate at different points in tenure.  </p>
       `,
       threshold: CONFIG.sceneThresholds.scene4
     },
@@ -53,7 +53,7 @@ export function getSceneConfigs() {
       stepLabel: "",
       stepTitle: "Justices starting after 1950 are more likely to have long tenures",
       stepBody: `
-        <p>It's also helpful to look at how the survival rate changes over time. This chart adds that 	
+        <p>It's also helpful to look at how the durability rate changes over time. This chart adds that 	
         extra dimension by splitting the Court's history into 2 time periods: pre-1966 and post-	1966. 
         Before 1966, about half the justices remained 	on the bench for 15 years, and half 	did not. 
         But after 1966, every single justice (excluding the current justices) served for at 	least 15 years.</p>
@@ -68,18 +68,49 @@ export function getSceneConfigs() {
       stepTitle: "Customizable Graph",
       stepBody: `
   
-  <p>This last graph allows you to adjust both lines: length of tenure and year in the Court's history. This lets you explore how tenure survival changes across different time splits and tenure thresholds.</p>
+  <p>This last graph allows you to adjust both lines: length of tenure and year in the Court's history. This lets you explore how tenure durability changes across different time splits and tenure thresholds.</p>
 
-  <div class="step-toggle scene-assumption-controls">
-    <button class="toggle-btn js-assume-current-toggle" type="button">
-      Assume current justices serve at least 15 years
-    </button>
-  </div>
 `,
       threshold: CONFIG.sceneThresholds.scene6,
       splitYear: CONFIG.sceneSplitYears.scene6,
       splitDate: yearDate(CONFIG.sceneSplitYears.scene6)
-    }
-    
+    },
+    {
+  id: "sceneMedianSplit",
+  stepLabel: "",
+  stepTitle: "Median tenure after 1966 is more than 10 years longer than before 1966",
+  stepBody: `
+    <p>Even if we include the current justices who are all relatively new to the bench, median tenure remains over 20 years.</p>
+  `,
+  medianOnly: true,
+  splitYear: CONFIG.sceneSplitYears.sceneMedianSplit,
+  splitDate: yearDate(CONFIG.sceneSplitYears.sceneMedianSplit)
+},{
+  id: "sceneMedianSplitDraggable",
+  stepLabel: "",
+  stepTitle: "What happens next?",
+  stepBody: `
+  What happens if current justices serve at least
+
+    <div class="step-toggle scene-assumption-controls">
+  <button class="toggle-btn js-assume-current-years" data-years="20" type="button">
+    20 years?
+  </button>
+
+  <button class="toggle-btn js-assume-current-years" data-years="30" type="button">
+    30 years?
+  </button>
+
+  <button class="toggle-btn js-assume-current-years" data-years="35" type="button">
+    35 years?
+  </button>
+</div>
+  
+    `,
+  medianOnly: true,
+  medianSplitDraggable: true,
+  splitYear: CONFIG.sceneSplitYears.sceneMedianSplitDraggable,
+  splitDate: yearDate(CONFIG.sceneSplitYears.sceneMedianSplitDraggable)
+}
   ];
 }

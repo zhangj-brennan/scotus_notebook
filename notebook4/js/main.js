@@ -4,11 +4,10 @@ import { getSceneConfigs } from "./scenes.js";
 
 let allData = [];
 let hideCurrent = true;
-
-let assumeCurrentAtLeast15 = false;
+let assumeCurrentMinYears = null;
 window.assumeCurrentAtLeast15 = false;
+window.assumeCurrentMinYears = null;
 
-const ASSUMED_CURRENT_MIN_YEARS = 15;
 const DAYS_PER_YEAR = 365.25;
 
 const sceneConfigs = getSceneConfigs();
@@ -69,15 +68,15 @@ function renderSteps() {
 }
 
 function applyCurrentJusticeAssumption(data) {
-  if (!assumeCurrentAtLeast15) return data;
+  if (!assumeCurrentMinYears) return data;
 
   return data.map(d => {
-    if (!d.isCurrent || d.tenureYears >= ASSUMED_CURRENT_MIN_YEARS) return d;
+    if (!d.isCurrent || d.tenureYears >= assumeCurrentMinYears) return d;
 
     return {
       ...d,
-      days: ASSUMED_CURRENT_MIN_YEARS * DAYS_PER_YEAR,
-      tenureYears: ASSUMED_CURRENT_MIN_YEARS,
+      days: assumeCurrentMinYears * DAYS_PER_YEAR,
+      tenureYears: assumeCurrentMinYears,
       assumedCurrentMinimum: true
     };
   });
@@ -117,20 +116,23 @@ function setupControls() {
 
   
 
-  document.querySelectorAll(".js-assume-current-toggle").forEach(btn => {
+document.querySelectorAll(".js-assume-current-years").forEach(btn => {
   btn.addEventListener("click", () => {
-    assumeCurrentAtLeast15 = !assumeCurrentAtLeast15;
+    const years = +btn.dataset.years;
 
-    window.assumeCurrentAtLeast15 = assumeCurrentAtLeast15;
+    assumeCurrentMinYears =
+      assumeCurrentMinYears === years ? null : years;
 
-    if (assumeCurrentAtLeast15) {
+    window.assumeCurrentMinYears = assumeCurrentMinYears;
+    window.assumeCurrentAtLeast15 = !!assumeCurrentMinYears;
+
+    if (assumeCurrentMinYears) {
       hideCurrent = false;
     }
 
     rerenderFromControls();
   });
 });
-
   updateControls();
 }
 
@@ -140,10 +142,13 @@ function updateControls() {
     btn.classList.toggle("active", hideCurrent);
   });
 
-  document.querySelectorAll(".js-assume-current-toggle").forEach(btn => {
-    btn.classList.toggle("active", assumeCurrentAtLeast15);
-    btn.setAttribute("aria-pressed", assumeCurrentAtLeast15 ? "true" : "false");
-  });
+document.querySelectorAll(".js-assume-current-years").forEach(btn => {
+  const years = +btn.dataset.years;
+  const isActive = assumeCurrentMinYears === years;
+
+  btn.classList.toggle("active", isActive);
+  btn.setAttribute("aria-pressed", isActive ? "true" : "false");
+});
 
   document.querySelectorAll(".js-justice-group").forEach(group => {
     group.classList.toggle("is-disabled", !hideCurrent);

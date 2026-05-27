@@ -40,7 +40,14 @@ export const CONFIG = {
   sceneSplitYears: {
     scene5: 1966,
     scene6: 1966,
-  }
+    sceneMedianSplit: 1966
+  },
+  sceneSplitYears: {
+  scene5: 1966,
+  scene6: 1966,
+  sceneMedianSplit: 1966,
+  sceneMedianSplitDraggable: 1966,
+}
 };
 
 export function getChartDimensions(viewportWidth = window.innerWidth) {
