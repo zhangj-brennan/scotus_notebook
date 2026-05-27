@@ -4,9 +4,6 @@ import { getSceneConfigs } from "./scenes.js";
 
 let allData = [];
 let hideCurrent = true;
-let includeAlito = false;
-let includeThomas = false;
-let includeRoberts = false;
 
 let assumeCurrentAtLeast15 = false;
 window.assumeCurrentAtLeast15 = false;
@@ -31,11 +28,7 @@ const toggleMarkup = `
       <div class="controls-note js-current-note">Showing all justices.</div>
     </div>
 
-    <div class="justice-segment-group js-justice-group" aria-label="Include individual current justices">
-      <button class="toggle-btn segment-btn js-alito-toggle" type="button">Alito</button>
-      <button class="toggle-btn segment-btn js-thomas-toggle" type="button">Thomas</button>
-      <button class="toggle-btn segment-btn js-roberts-toggle" type="button">Roberts</button>
-    </div>
+ 
   </div>
 `;
 
@@ -75,25 +68,6 @@ function renderSteps() {
   `).join("");
 }
 
-function normalizeName(name) {
-  return String(name || "")
-    .toLowerCase()
-    .replace(/[^a-z\s]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function isJusticeMatch(name, targetLastName) {
-  return normalizeName(name).includes(targetLastName.toLowerCase());
-}
-
-function isIncludedException(d) {
-  if (includeAlito && isJusticeMatch(d.name, "alito")) return true;
-  if (includeThomas && isJusticeMatch(d.name, "thomas")) return true;
-  if (includeRoberts && isJusticeMatch(d.name, "roberts")) return true;
-  return false;
-}
-
 function applyCurrentJusticeAssumption(data) {
   if (!assumeCurrentAtLeast15) return data;
 
@@ -112,8 +86,7 @@ function applyCurrentJusticeAssumption(data) {
 function getFilteredData() {
   const filtered = allData.filter(d => {
     if (!hideCurrent) return true;
-    if (!d.isCurrent) return true;
-    return isIncludedException(d);
+    return !d.isCurrent;
   });
 
   return applyCurrentJusticeAssumption(filtered);
@@ -138,39 +111,11 @@ function setupControls() {
     btn.addEventListener("click", () => {
       hideCurrent = !hideCurrent;
 
-      if (!hideCurrent) {
-        includeAlito = false;
-        includeThomas = false;
-        includeRoberts = false;
-      }
-
       rerenderFromControls();
     });
   });
 
-  els.figureControls.querySelectorAll(".js-alito-toggle").forEach(btn => {
-    btn.addEventListener("click", () => {
-      if (!hideCurrent) return;
-      includeAlito = !includeAlito;
-      rerenderFromControls();
-    });
-  });
-
-  els.figureControls.querySelectorAll(".js-thomas-toggle").forEach(btn => {
-    btn.addEventListener("click", () => {
-      if (!hideCurrent) return;
-      includeThomas = !includeThomas;
-      rerenderFromControls();
-    });
-  });
-
-  els.figureControls.querySelectorAll(".js-roberts-toggle").forEach(btn => {
-    btn.addEventListener("click", () => {
-      if (!hideCurrent) return;
-      includeRoberts = !includeRoberts;
-      rerenderFromControls();
-    });
-  });
+  
 
   document.querySelectorAll(".js-assume-current-toggle").forEach(btn => {
   btn.addEventListener("click", () => {
@@ -200,24 +145,6 @@ function updateControls() {
     btn.setAttribute("aria-pressed", assumeCurrentAtLeast15 ? "true" : "false");
   });
 
-  document.querySelectorAll(".js-alito-toggle").forEach(btn => {
-    btn.classList.toggle("active", includeAlito);
-    btn.disabled = !hideCurrent;
-    btn.setAttribute("aria-pressed", includeAlito ? "true" : "false");
-  });
-
-  document.querySelectorAll(".js-thomas-toggle").forEach(btn => {
-    btn.classList.toggle("active", includeThomas);
-    btn.disabled = !hideCurrent;
-    btn.setAttribute("aria-pressed", includeThomas ? "true" : "false");
-  });
-
-  document.querySelectorAll(".js-roberts-toggle").forEach(btn => {
-    btn.classList.toggle("active", includeRoberts);
-    btn.disabled = !hideCurrent;
-    btn.setAttribute("aria-pressed", includeRoberts ? "true" : "false");
-  });
-
   document.querySelectorAll(".js-justice-group").forEach(group => {
     group.classList.toggle("is-disabled", !hideCurrent);
   });
@@ -226,10 +153,6 @@ function updateControls() {
 
   if (hideCurrent) {
     const included = [];
-
-    if (includeAlito) included.push("Alito");
-    if (includeThomas) included.push("Thomas");
-    if (includeRoberts) included.push("Roberts");
 
     noteText = included.length
       ? `Showing former justices, plus ${included.join(", ")}.`
