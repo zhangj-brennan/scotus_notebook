@@ -596,10 +596,7 @@ this.summaryContainer.innerHTML = `
     ${Math.round(counts.left.topRate * 100)}% vs. ${Math.round(counts.right.topRate * 100)}%
     remain on the bench after ${d3.format(".1f")(threshold)} years
   </span>
-  <div>
-    Median tenure before ${splitLabel}: <strong>${d3.format(".1f")(medians.left)} years</strong><br>
-    Median tenure after ${splitLabel}: <strong>${d3.format(".1f")(medians.right)} years</strong>
-  </div>
+  
 `;
 
 this.renderQuadrants(counts, splitDate, threshold);
