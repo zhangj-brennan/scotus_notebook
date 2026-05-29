@@ -97,12 +97,12 @@ export function getSceneConfigs() {
     20 years?
   </button>
 
-  <button class="toggle-btn js-assume-current-years" data-years="30" type="button">
-    30 years?
+  <button class="toggle-btn js-assume-current-years" data-years="25" type="button">
+    25 years?
   </button>
 
-  <button class="toggle-btn js-assume-current-years" data-years="35" type="button">
-    35 years?
+  <button class="toggle-btn js-assume-current-years" data-years="30" type="button">
+    30 years?
   </button>
 </div>
   
