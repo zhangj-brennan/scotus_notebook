@@ -74,38 +74,12 @@ export function getSceneConfigs() {
       threshold: CONFIG.sceneThresholds.scene6,
       splitYear: CONFIG.sceneSplitYears.scene6,
       splitDate: yearDate(CONFIG.sceneSplitYears.scene6)
-    },
-    {
-  id: "sceneMedianSplit",
+    },{
+  id: "sceneMedianSplitDraggable",
   stepLabel: "",
   stepTitle: "Median tenure after 1966 is more than 10 years longer than before 1966",
   stepBody: `
-    <p>Even if we include the current justices who are all relatively new to the bench, median tenure remains over 20 years.</p>
-  `,
-  medianOnly: true,
-  splitYear: CONFIG.sceneSplitYears.sceneMedianSplit,
-  splitDate: yearDate(CONFIG.sceneSplitYears.sceneMedianSplit)
-},{
-  id: "sceneMedianSplitDraggable",
-  stepLabel: "",
-  stepTitle: "What happens next?",
-  stepBody: `
-  What happens if current justices serve at least
-
-    <div class="step-toggle scene-assumption-controls">
-  <button class="toggle-btn js-assume-current-years" data-years="20" type="button">
-    20 years?
-  </button>
-
-  <button class="toggle-btn js-assume-current-years" data-years="25" type="button">
-    25 years?
-  </button>
-
-  <button class="toggle-btn js-assume-current-years" data-years="30" type="button">
-    30 years?
-  </button>
-</div>
-  
+ Median tenure has changed and is expected to grow as current sitting justices continue their careers. 
     `,
   medianOnly: true,
   medianSplitDraggable: true,
