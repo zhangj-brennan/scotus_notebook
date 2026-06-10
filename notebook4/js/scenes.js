@@ -51,7 +51,7 @@ export function getSceneConfigs() {
     {
       id: "scene5",
       stepLabel: "",
-      stepTitle: "Justices starting after 1950 are more likely to have long tenures",
+      stepTitle: "Justices starting after 1966 are more likely to have long tenures",
       stepBody: `
         <p>It's also helpful to look at how the durability rate changes over time. This chart adds that 	
         extra dimension by splitting the Court's history into 2 time periods: pre-1966 and post-	1966. 
