@@ -41,13 +41,36 @@ const els = {
   chart: document.getElementById("chart"),
   summary: document.getElementById("summary"),
   filters: document.getElementById("filters"),
-  resetFilters: document.getElementById("resetFilters")
+  resetFilters: document.getElementById("resetFilters"),
+  shareState: document.getElementById("shareState")
 };
 
 let allData = [];
 let selectedReasons = new Set();
 let splitDate = new Date(CONFIG.initialSplitYear, 0, 1);
 let chart = null;
+
+function readStateFromUrl() {
+  const params = new URLSearchParams(
+    window.location.hash.replace(/^#/, "")
+  );
+
+  return {
+    year: +(params.get("year") || CONFIG.initialSplitYear),
+    reasons: params.get("reasons")
+      ? new Set(params.get("reasons").split(","))
+      : null
+  };
+}
+
+function writeStateToUrl() {
+  const params = new URLSearchParams();
+
+  params.set("year", d3.timeFormat("%Y")(splitDate));
+  params.set("reasons", Array.from(selectedReasons).join(","));
+
+  history.replaceState(null, "", "#" + params.toString());
+}
 
 init();
 
@@ -58,23 +81,53 @@ async function init() {
   ]);
 
   const reasonLookup = buildReasonLookup(endRows);
+
   allData = tenureRows
     .map(row => parseTenureRow(row, reasonLookup))
     .filter(d => d.startDate && Number.isFinite(d.tenureYears))
     .sort((a, b) => d3.ascending(a.startDate, b.startDate));
 
   const reasons = getReasonList(allData);
-  selectedReasons = new Set(reasons);
+  const urlState = readStateFromUrl();
+
+  splitDate = new Date(urlState.year, 0, 1);
+
+  selectedReasons = urlState.reasons
+    ? new Set(reasons.filter(r => urlState.reasons.has(r)))
+    : new Set(reasons);
+
   renderFilters(reasons);
 
-  chart = new MedianSplitChart({ container: els.chart, summaryContainer: els.summary });
+  chart = new MedianSplitChart({
+    container: els.chart,
+    summaryContainer: els.summary
+  });
+
   chart.init(allData, getFilteredData(), splitDate);
 
   els.resetFilters.addEventListener("click", () => {
     selectedReasons = new Set(reasons);
     updateFilterButtons();
     updateChart();
+    writeStateToUrl();
   });
+
+  if (els.shareState) {
+    els.shareState.addEventListener("click", async () => {
+      writeStateToUrl();
+
+      await navigator.clipboard.writeText(window.location.href);
+
+      const oldText = els.shareState.textContent;
+      els.shareState.textContent = "Copied!";
+
+      setTimeout(() => {
+        els.shareState.textContent = oldText;
+      }, 1500);
+    });
+  }
+
+  writeStateToUrl();
 }
 
 function updateChart() {
@@ -87,7 +140,7 @@ function getFilteredData() {
 
 function renderFilters(reasons) {
   els.filters.innerHTML = reasons.map(reason => `
-    <button class="filter-btn active" type="button" data-reason="${escapeAttr(reason)}" aria-pressed="true">
+    <button class="filter-btn${selectedReasons.has(reason) ? " active" : ""}" type="button" data-reason="${escapeAttr(reason)}" aria-pressed="${selectedReasons.has(reason) ? "true" : "false"}">
       ${reason}
     </button>
   `).join("");
@@ -95,10 +148,16 @@ function renderFilters(reasons) {
   els.filters.querySelectorAll(".filter-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       const reason = btn.dataset.reason;
-      if (selectedReasons.has(reason)) selectedReasons.delete(reason);
-      else selectedReasons.add(reason);
+
+      if (selectedReasons.has(reason)) {
+        selectedReasons.delete(reason);
+      } else {
+        selectedReasons.add(reason);
+      }
+
       updateFilterButtons();
       updateChart();
+      writeStateToUrl();
     });
   });
 }
@@ -114,7 +173,10 @@ function updateFilterButtons() {
 function getReasonList(data) {
   const seen = new Set(data.map(d => d.endReason));
   const ordered = CONFIG.reasonOrder.filter(reason => seen.has(reason));
-  const extras = Array.from(seen).filter(reason => !CONFIG.reasonOrder.includes(reason)).sort(d3.ascending);
+  const extras = Array.from(seen)
+    .filter(reason => !CONFIG.reasonOrder.includes(reason))
+    .sort(d3.ascending);
+
   return ordered.concat(extras);
 }
 
@@ -124,7 +186,9 @@ function buildReasonLookup(rows) {
   rows.forEach(row => {
     const parsed = parseEndReasonName(row.name);
     if (!parsed) return;
+
     const key = `${parsed.first}|${parsed.last}`;
+
     if (!byKey.has(key)) byKey.set(key, []);
     byKey.get(key).push(row[CONFIG.fields.endReason]);
   });
@@ -153,17 +217,17 @@ function parseTenureRow(row, reasonLookup) {
 function getEndReason(name, isCurrent, reasonLookup) {
   if (isCurrent) return "Current";
 
-  // These rows mark justices whose associate-justice service ended because they continued as chief justice.
-  // They are kept as their own filter category because that category exists in the uploaded end-reason file.
   const continuedAsChief = new Set([
     "Edward Douglass White (CJ)",
     "Harlan F. Stone (CJ)",
     "William Rehnquist (CJ)"
   ]);
+
   if (continuedAsChief.has(name)) return "Continued as chief justice";
 
   const parsed = parseMainName(name);
   const reasons = reasonLookup.get(`${parsed.first}|${parsed.last}`) || [];
+
   if (!reasons.length) return "Unknown";
 
   const finalReasonPreference = [
@@ -185,7 +249,9 @@ function parseMainName(name) {
     .replace(/\b(Jr|Sr|II|III|IV)\b/gi, " ")
     .replace(/[^a-zA-Z'\s-]/g, " ")
     .trim();
+
   const parts = clean.split(/\s+/).filter(Boolean);
+
   return {
     first: normalizeToken(parts[0] || ""),
     last: normalizeToken(parts[parts.length - 1] || "")
@@ -194,13 +260,16 @@ function parseMainName(name) {
 
 function parseEndReasonName(name) {
   if (!name || !name.includes(",")) return null;
+
   const [lastRaw, restRaw] = name.split(/,(.+)/);
   const rest = restRaw || "";
+
   const first = rest
     .replace(/[.,]/g, " ")
     .replace(/\b(Jr|Sr|II|III|IV)\b/gi, " ")
     .trim()
     .split(/\s+/)[0] || "";
+
   return {
     first: normalizeToken(first),
     last: normalizeToken(lastRaw)
@@ -213,6 +282,7 @@ function normalizeToken(value) {
 
 function parseDateFlexible(value) {
   if (!value) return null;
+
   const tryFormats = [
     d3.timeParse("%Y-%m-%d"),
     d3.timeParse("%m/%d/%Y"),
@@ -221,10 +291,12 @@ function parseDateFlexible(value) {
     d3.timeParse("%b %d, %Y"),
     d3.timeParse("%B %d, %Y")
   ];
+
   for (const parse of tryFormats) {
     const dt = parse(value);
     if (dt) return dt;
   }
+
   const fallback = new Date(value);
   return Number.isNaN(+fallback) ? null : fallback;
 }
@@ -241,11 +313,17 @@ function parseBooleanFlexible(value) {
 }
 
 function escapeAttr(value) {
-  return String(value).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 function getChartDimensions(viewportWidth = window.innerWidth) {
-  return viewportWidth <= CONFIG.mobileBreakpoint ? CONFIG.chartMobile : CONFIG.chartDesktop;
+  return viewportWidth <= CONFIG.mobileBreakpoint
+    ? CONFIG.chartMobile
+    : CONFIG.chartDesktop;
 }
 
 function splitMedians(data, splitDate) {
@@ -286,10 +364,16 @@ class MedianSplitChart {
   setupResize() {
     window.addEventListener("resize", () => {
       if (this.resizeRaf) cancelAnimationFrame(this.resizeRaf);
+
       this.resizeRaf = requestAnimationFrame(() => {
         const nextDims = getChartDimensions(window.innerWidth);
-        const changed = nextDims.width !== this.chartDims.width || nextDims.height !== this.chartDims.height;
+
+        const changed =
+          nextDims.width !== this.chartDims.width ||
+          nextDims.height !== this.chartDims.height;
+
         if (!changed) return;
+
         this.draw();
       });
     });
@@ -297,6 +381,7 @@ class MedianSplitChart {
 
   draw() {
     d3.select(this.container).html("");
+
     this.chartDims = getChartDimensions(window.innerWidth);
 
     this.svg = d3.select(this.container)
@@ -314,8 +399,10 @@ class MedianSplitChart {
 
   drawBase() {
     const { width, height, margin, xTicks, yTicks } = this.chartDims;
+
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
+
     const maxYears = d3.max(this.allData, d => d.tenureYears) || 0;
     const yMax = Math.ceil(maxYears + CONFIG.yAxisMaxPaddingYears);
 
@@ -329,7 +416,16 @@ class MedianSplitChart {
       .nice()
       .range([margin.top + innerHeight, margin.top]);
 
-    this.scales = { x, y, yMax, width, height, margin, innerWidth, innerHeight };
+    this.scales = {
+      x,
+      y,
+      yMax,
+      width,
+      height,
+      margin,
+      innerWidth,
+      innerHeight
+    };
 
     this.svg.append("g")
       .attr("class", "grid")
@@ -368,13 +464,27 @@ class MedianSplitChart {
       .text("Years in office");
 
     this.g.dots = this.svg.append("g");
-    this.g.splitLine = this.svg.append("line").attr("class", "split-line");
-    this.g.splitHit = this.svg.append("line").attr("class", "drag-hit");
-    this.g.splitLabel = this.svg.append("text").attr("class", "annotation");
-    this.g.leftMedian = this.svg.append("text").attr("class", "median-number");
-    this.g.leftLabel = this.svg.append("text").attr("class", "median-label");
-    this.g.rightMedian = this.svg.append("text").attr("class", "median-number");
-    this.g.rightLabel = this.svg.append("text").attr("class", "median-label");
+
+    this.g.splitLine = this.svg.append("line")
+      .attr("class", "split-line");
+
+    this.g.splitHit = this.svg.append("line")
+      .attr("class", "drag-hit");
+
+    this.g.splitLabel = this.svg.append("text")
+      .attr("class", "annotation");
+
+    this.g.leftMedian = this.svg.append("text")
+      .attr("class", "median-number");
+
+    this.g.leftLabel = this.svg.append("text")
+      .attr("class", "median-label");
+
+    this.g.rightMedian = this.svg.append("text")
+      .attr("class", "median-number");
+
+    this.g.rightLabel = this.svg.append("text")
+      .attr("class", "median-label");
 
     this.g.dots.selectAll("circle")
       .data(this.allData, d => `${d.name}-${+d.startDate}`)
@@ -388,19 +498,31 @@ class MedianSplitChart {
       .on("mouseleave", () => this.hideTooltip());
 
     this.g.splitHit.call(
-      d3.drag().on("drag", event => {
-        const clampedX = Math.max(margin.left, Math.min(margin.left + innerWidth, event.x));
-        this.splitDate = x.invert(clampedX);
-        splitDate = this.splitDate;
-        this.update(this.filteredData, this.splitDate);
-      })
+      d3.drag()
+        .on("drag", event => {
+          const clampedX = Math.max(
+            margin.left,
+            Math.min(margin.left + innerWidth, event.x)
+          );
+
+          this.splitDate = x.invert(clampedX);
+          splitDate = this.splitDate;
+
+          this.update(this.filteredData, this.splitDate);
+        })
+        .on("end", () => {
+          writeStateToUrl();
+        })
     );
   }
 
   update(filteredData, currentSplitDate) {
     this.filteredData = filteredData;
     this.splitDate = currentSplitDate;
-    const activeKeys = new Set(filteredData.map(d => `${d.name}-${+d.startDate}`));
+
+    const activeKeys = new Set(
+      filteredData.map(d => `${d.name}-${+d.startDate}`)
+    );
 
     this.g.dots.selectAll("circle")
       .classed("filtered-out", d => !activeKeys.has(`${d.name}-${+d.startDate}`));
@@ -410,6 +532,7 @@ class MedianSplitChart {
 
   updateSplitView() {
     const { x, margin, innerWidth, innerHeight } = this.scales;
+
     const xx = x(this.splitDate);
     const splitLabel = d3.timeFormat("%Y")(this.splitDate);
     const medians = splitMedians(this.filteredData, this.splitDate);
@@ -434,8 +557,14 @@ class MedianSplitChart {
     const xLeftCenter = (margin.left + xx) / 2;
     const xRightCenter = (xx + margin.left + innerWidth) / 2;
     const yCenter = margin.top + innerHeight / 2;
-    const leftText = Number.isFinite(medians.leftMedian) ? d3.format(".1f")(medians.leftMedian) : "—";
-    const rightText = Number.isFinite(medians.rightMedian) ? d3.format(".1f")(medians.rightMedian) : "—";
+
+    const leftText = Number.isFinite(medians.leftMedian)
+      ? d3.format(".1f")(medians.leftMedian)
+      : "—";
+
+    const rightText = Number.isFinite(medians.rightMedian)
+      ? d3.format(".1f")(medians.rightMedian)
+      : "—";
 
     this.g.leftMedian
       .attr("x", xLeftCenter)
@@ -468,6 +597,7 @@ class MedianSplitChart {
 
   showTooltip(event, d) {
     const startYear = d.startDate ? d3.timeFormat("%Y")(d.startDate) : "";
+
     this.tooltip
       .style("display", "block")
       .html(`
@@ -476,6 +606,7 @@ class MedianSplitChart {
         <div>Start: ${startYear}</div>
         <div>End reason: ${d.endReason}</div>
       `);
+
     this.moveTooltip(event);
   }
 
@@ -484,22 +615,27 @@ class MedianSplitChart {
     const containerRect = this.container.getBoundingClientRect();
     const tooltipNode = this.tooltip.node();
     const tooltipRect = tooltipNode.getBoundingClientRect();
+
     const pad = 12;
     const offsetX = 14;
     const offsetY = 14;
 
     let left = x + offsetX;
     let top = y - offsetY - tooltipRect.height;
+
     const maxLeft = containerRect.width - tooltipRect.width - pad;
     const maxTop = containerRect.height - tooltipRect.height - pad;
 
     if (left > maxLeft) left = x - tooltipRect.width - offsetX;
     if (left < pad) left = pad;
+
     if (top < pad) top = y + offsetY;
     if (top > maxTop) top = maxTop;
     if (top < pad) top = pad;
 
-    this.tooltip.style("left", `${left}px`).style("top", `${top}px`);
+    this.tooltip
+      .style("left", `${left}px`)
+      .style("top", `${top}px`);
   }
 
   hideTooltip() {
