@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Supreme Court tenure by end reason</title>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="page">
+    <section class="figure-header">
+      <h1>Supreme Court tenure by end reason</h1>
+      <div id="summary" class="summary-box"></div>
+    </section>
+
+    <section class="controls" aria-label="Chart filters">
+      <div class="controls-label">Show:</div>
+      <div id="filters" class="filters"></div>
+      <button id="resetFilters" class="toggle-btn" type="button">Reset filters</button>
+    </section>
+
+    <section id="chart" class="chart-shell"></section>
+    <div id="hint" class="figure-hint">Drag the red dotted line left or right.</div>
+
+    <footer class="source-note">
+      Source: FJC, Supreme Court of the United States: Justices. End-reason categories from uploaded dataset.
+    </footer>
+  </main>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
