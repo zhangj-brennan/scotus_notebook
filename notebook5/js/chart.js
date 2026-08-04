@@ -53,7 +53,7 @@ export function splitMedians(data, splitDate) {
 export function buildSummaryThreshold(threshold, stats) {
   return `
     <span class="big">
-    <div>After ${Math.round(threshold)} years, ${stats.survived} out of ${stats.total} justices (${Math.round(stats.rate*100)}%) are still on the court.</div>
+    <div>After ${Math.round(threshold)} years, ${stats.survived} out of ${stats.total} justices (${Math.round(stats.rate*100)}%) are still on the Court.</div>
     </span>
     `;
 }

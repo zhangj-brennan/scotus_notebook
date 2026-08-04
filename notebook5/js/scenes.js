@@ -24,7 +24,7 @@ Overall, the median tenure for former Supreme Court justices is 16.5 years. The 
     {
       id: "scene2",
       stepLabel: "",
-      stepTitle: "68% of former Supreme Court justices last served at least more than 10 years on the Court.",
+      stepTitle: "68% of former Supreme Court justices served at least 10 years on the Court.",
       stepBody: `
         <p>Looking at the justices’ durability rate is another helpful data point: how many justices remain after, say, 10 years on the bench? </p><br>
         <p>The horizontal line at the 10-year mark divides the justices into two groups: the group above the line are the justices that remained on the bench for more than a decade and below the line reflects those that did not. This tells us that 68% of former Supreme Court justices spend more than 10 years on the court.  </p>
@@ -59,7 +59,7 @@ Overall, the median tenure for former Supreme Court justices is 16.5 years. The 
       stepTitle: "Customizable Graph",
       stepBody: `
   
-  <p>This last graph allows you to adjust both lines: length of tenure and year in the Court's history. This lets you explore how tenure durability changes across different time splits and tenure thresholds. </p>
+  <p>This graph allows you to adjust both lines: length of tenure and year in the Court’s history. This lets you explore how tenure durability changes across different time splits and tenure thresholds.</p>
 `,
       threshold: CONFIG.sceneThresholds.scene6,
       splitYear: CONFIG.sceneSplitYears.scene6,
