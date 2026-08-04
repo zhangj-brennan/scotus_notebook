@@ -6,13 +6,13 @@ export function getSceneConfigs() {
     {
       id: "scene1",
       stepLabel: "",
-      stepTitle: "54 out of 107 Justices, or 50% of all justices have served on the court over 16.5 years",
+      stepTitle: "54 out of 107 former justices, or 50% of all former justices have served on the Court more than 16.5 years",
       stepBody: `
       <p>A scatterplot of all SCOTUS justices</p><br>
         <p>
 Since 1789, 116 justices have served on the U.S. Supreme Court. Their tenures have varied, with some justices serving multiple decades (the longest being 36.6 years) while other justices have remained on the bench for just over a year.         </p><br>
         <p>
-Overall, median tenure for former Supreme Court justices is 16.5 years. The current justices do not have a large effect on the median time served by a Supreme Court justice because they reflect only nine data points out of a large sample.        </p>
+Overall, the median tenure for former Supreme Court justices is 16.5 years. The current justices do not have a large effect on the median time served by a Supreme Court justice because they reflect only nine data points out of a large sample.        </p>
         
         <div class="legend">
           <div class="legend-item"><span class="legend-swatch"></span><span>Former justices</span></div>
@@ -24,7 +24,7 @@ Overall, median tenure for former Supreme Court justices is 16.5 years. The curr
     {
       id: "scene2",
       stepLabel: "",
-      stepTitle: "68% of justices last more than 10 years on the court ",
+      stepTitle: "68% of former Supreme Court justices last served at least more than 10 years on the Court.",
       stepBody: `
         <p>Looking at the justices’ durability rate is another helpful data point: how many justices remain after, say, 10 years on the bench? </p><br>
         <p>The horizontal line at the 10-year mark divides the justices into two groups: the group above the line are the justices that remained on the bench for more than a decade and below the line reflects those that did not. This tells us that 68% of former Supreme Court justices spend more than 10 years on the court.  </p>
@@ -44,9 +44,10 @@ Overall, median tenure for former Supreme Court justices is 16.5 years. The curr
     {
       id: "scene5",
       stepLabel: "",
-      stepTitle: "Justices starting after 1950 are more likely to have long tenures ",
+      stepTitle: "Justices starting after 1950 are more likely to serve longer.",
       stepBody: `
-        <p>It’s also helpful to look at how the durability rate changes over time. This chart adds that extra dimension by splitting the Court's history into 2 time periods: pre-1966 and post-1966. Before 1966, about half the justices remained on the bench for 15 years, and half did not. But after 1966, every single former justice  served for at least 15 years. </p>
+        <p>It’s also helpful to look at how the durability rate changes over time. 
+        This chart adds that extra dimension by splitting the Court's history into two time periods: pre-1966 and post-1966. Before 1966, about half the justices remained on the bench for 15 years, and half did not. But after 1966, every single former justice  served for at least 15 years. </p>
       `,
       threshold: CONFIG.sceneThresholds.scene5,
       splitYear: CONFIG.sceneSplitYears.scene5,
@@ -68,7 +69,7 @@ Overall, median tenure for former Supreme Court justices is 16.5 years. The curr
   stepLabel: "",
   stepTitle: "Median tenure after 1966 is more than 10 years longer than before 1966",
   stepBody: `
- <p>Justices who served on the Court prior to 1966 stayed for a median of 15.3 years. But for the justices that served on the Court after 1966, that number jumps dramatically to a median of 25.7 years.  </p>
+ <p>Supreme Court justices who served on the Court prior to 1966 stayed for a median of 15.3 years. But for the justices that served on the Court after 1966, that number jumps dramatically to a median of 25.7 years.  </p>
  <br><p>The red line is adjustable. This lets you explore how median tenure compares across two time periods.  </p>
     `,
   medianOnly: true,

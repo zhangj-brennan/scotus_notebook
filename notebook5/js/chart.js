@@ -693,9 +693,8 @@ this.renderQuadrants(counts, splitDate, threshold);
       const stats = countSurvivors(data, threshold);
 
       this.summaryContainer.innerHTML = `
-        <span class="big">Median tenure: ${d3.format(".1f")(median)} years<br>
+        <span class="big">Median tenure of former Supreme Court justices: ${d3.format(".1f")(median)} years<br>
         </span>
-        <div>${stats.survived} out of ${stats.total} Justices, or 50% of all justices have served on the court over ${d3.format(".1f")(median)} years</div>
       `;
 
       this.drawMedianLine(median);
@@ -802,8 +801,15 @@ this.renderQuadrants(counts, splitDate, threshold);
           .attr("y", margin.top + 16);
       }
     }
+  if (sceneName === "scene2"){
+      this.summaryContainer.innerHTML = `
+        <span class="big">
+        Historically, 73 out of 107 justices (68%) served at least 10 years. 
+        </span>
+      `;
+  }
 
-    if (sceneName === "scene2" || sceneName === "scene3") {
+    if (sceneName === "scene3") {
       const stats = countSurvivors(data, sceneConfig.threshold);
       this.summaryContainer.innerHTML = buildSummaryThreshold(sceneConfig.threshold, stats);
       this.updateThresholdStyling(sceneConfig.threshold);
