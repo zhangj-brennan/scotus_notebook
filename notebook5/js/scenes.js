@@ -6,7 +6,7 @@ export function getSceneConfigs() {
     {
       id: "scene1",
       stepLabel: "",
-      stepTitle: "54 out of 107 former justices, or 50% of all former justices have served on the Court more than 16.5 years",
+      stepTitle: "54 out of 107 former justices, or 50% of all former justices have served on the Court more than 16.5 years.",
       stepBody: `
       <p>A scatterplot of all SCOTUS justices</p><br>
         <p>
@@ -34,7 +34,7 @@ Overall, the median tenure for former Supreme Court justices is 16.5 years. The 
     {
       id: "scene4",
       stepLabel: "",
-      stepTitle: "At 20 years, the durability rate falls to 40%",
+      stepTitle: "At 20 years, the durability rate falls to 40%.",
       stepBody: `
         <p>If we adjust the threshold to be 20 years on the bench, the durability rate falls to 40%, or in other words, 40% of former Supreme Court justices serve for 20 or more years. </p>
         <br><p>Adjust the threshold by moving the red line up or down. This will tell you the durability rate at different points in tenure. </p>
@@ -67,7 +67,7 @@ Overall, the median tenure for former Supreme Court justices is 16.5 years. The 
     },{
   id: "sceneMedianSplitDraggable",
   stepLabel: "",
-  stepTitle: "Median tenure after 1966 is more than 10 years longer than before 1966",
+  stepTitle: "Median tenure after 1966 is more than 10 years longer than before 1966.",
   stepBody: `
  <p>Supreme Court justices who served on the Court prior to 1966 stayed for a median of 15.3 years. But for the justices that served on the Court after 1966, that number jumps dramatically to a median of 25.7 years.  </p>
  <br><p>The red line is adjustable. This lets you explore how median tenure compares across two time periods.  </p>
